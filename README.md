@@ -1,3 +1,3 @@
-#grad-cert-app
+# grad-cert-app
 
 Villanova Graduate Certification System
