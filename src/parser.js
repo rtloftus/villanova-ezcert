@@ -61,7 +61,7 @@ async function processDirectory(directory) {
             if (!parsed.Report || !parsed.Report.Audit) continue;
 
             const audits = ensureArray(parsed.Report.Audit);
-            
+
             for (const audit of audits) {
                 const studentData = parseAuditXML(audit);
                 if (studentData.vuid) {
@@ -83,7 +83,7 @@ function parseAuditXML(auditObj) {
     const header = auditObj.AuditHeader || {};
     const rawName = header["@_Stu_name"] || "Unknown Student";
     const fullName = cleanString(rawName);
-    
+
     let lastName = "";
     let firstName = "";
     if (fullName) {
@@ -98,23 +98,23 @@ function parseAuditXML(auditObj) {
     // --- Demographics & Program Info ---
     const degData = auditObj.Deginfo && auditObj.Deginfo.DegreeData ? auditObj.Deginfo.DegreeData : {};
     const reports = auditObj.Deginfo && auditObj.Deginfo.Report ? ensureArray(auditObj.Deginfo.Report) : [];
-    
+
     const degCodeReport = reports.find(r => r["@_Code"] === "DEGCODE");
     const isAwarded = degCodeReport && degCodeReport["@_Value"] === "Awarded";
 
     let clas = degData["@_Stu_level"] ? degData["@_Stu_level"].trim() : "-";
-    if (isAwarded) clas = "SR"; 
+    if (isAwarded) clas = "SR";
     else if (clas === "") clas = "-";
 
     const goals = auditObj.Deginfo && auditObj.Deginfo.Goal ? ensureArray(auditObj.Deginfo.Goal) : [];
     const progGoal = goals.find(g => g["@_Code"] === "PROGRAM");
     const program = progGoal ? cleanString(progGoal["@_Value"]) : "-";
-    
+
     let dept = "-";
     if (program !== "-") {
         const progParts = program.split("-");
-        const progCode = progParts.pop(); 
-        dept = DEPT_MAPPING[progCode] || progCode; 
+        const progCode = progParts.pop();
+        dept = DEPT_MAPPING[progCode] || progCode;
     }
 
     const unique_id = `${vuid}-${program}`;
@@ -122,9 +122,9 @@ function parseAuditXML(auditObj) {
     // --- Catalog Term, Study Abroad & Affiliate Check ---
     let minTerm = "999999";
     const clsInfo = auditObj.Clsinfo && auditObj.Clsinfo.Class ? ensureArray(auditObj.Clsinfo.Class) : [];
-    
+
     let isStudyAbroad = false;
-    let isAffiliate = false; 
+    let isAffiliate = false;
 
     clsInfo.forEach(c => {
         if (c["@_Term"] && c["@_Term"] < minTerm) {
@@ -141,7 +141,7 @@ function parseAuditXML(auditObj) {
 
     // --- Blocks (Majors, Minors, Concs, Reqs) ---
     const blocks = ensureArray(auditObj.Block);
-    
+
     const majors = blocks.filter(b => b["@_Req_type"] === "MAJOR").map(b => cleanString(b["@_Req_value"]));
     const minors = blocks.filter(b => b["@_Req_type"] === "MINOR").map(b => cleanString(b["@_Req_value"]));
     const concs = blocks.filter(b => b["@_Req_type"] === "CONC").map(b => cleanString(b["@_Req_value"]));
@@ -166,9 +166,9 @@ function parseAuditXML(auditObj) {
 
     // --- Detailed Core Counts & Note Tracking ---
     let notesArr = []; // Define early to catch credit remainders!
-    
+
     const coreReqs = { Humanities: 0, Philosophy: 0, Ethics: 0, Math: 0, NaturalScience: 0, Literature: 0, History: 0, SocialScience: 0, FineArts: 0, Theology: 0 };
-    
+
     if (coreBlock && isBlockIncomplete(coreBlock)) {
         coreReqs.Humanities = countMissingRules(coreBlock.Rule, ["Ancients", "Moderns"]);
         coreReqs.Philosophy = countMissingRules(coreBlock.Rule, ["Knowledge"]);
@@ -184,7 +184,7 @@ function parseAuditXML(auditObj) {
 
     let langCount = (langBlock && isBlockIncomplete(langBlock)) ? 1 : 0;
     let divCount = (divBlock && isBlockIncomplete(divBlock)) ? countMissingRules(divBlock.Rule) : 0;
-    
+
     // Major Count + Credit Remainder Logic
     let majorCount = 0;
     if (majorBlock && isBlockIncomplete(majorBlock)) {
@@ -194,7 +194,7 @@ function parseAuditXML(auditObj) {
             const creditsNeeded = parseInt(neededQual["@_Needed"], 10);
             majorCount = Math.floor(creditsNeeded / 3);
             const remainder = creditsNeeded % 3;
-            
+
             if (remainder === 2) majorCount += 1;
             if (remainder > 0) notesArr.push(`Major: +${remainder} cr.`);
         } else {
@@ -211,7 +211,7 @@ function parseAuditXML(auditObj) {
             const creditsNeeded = parseInt(neededQual["@_Needed"], 10);
             elecCount = Math.floor(creditsNeeded / 3);
             const remainder = creditsNeeded % 3;
-            
+
             if (remainder === 2) elecCount += 1;
             if (remainder > 0) notesArr.push(`Electives: +${remainder} cr.`);
         } else {
@@ -222,7 +222,7 @@ function parseAuditXML(auditObj) {
     // --- Status & Totals ---
     const totalCore = Object.values(coreReqs).reduce((a, b) => a + b, 0);
     const totalCourses = totalCore + langCount + divCount + majorCount + elecCount;
-    
+
     const hasInProgress = auditObj.In_progress && (parseInt(auditObj.In_progress["@_Classes"], 10) > 0);
     const isDecGrad = (totalCourses === 0 && hasInProgress);
 
@@ -233,18 +233,18 @@ function parseAuditXML(auditObj) {
         status = "Delete";
         notesArr.push("Degree awarded.");
     } else if (isDecGrad) {
-        status = "On Track"; 
+        status = "On Track";
         notesArr.push("DEC grad.");
     } else {
-        const customs = auditObj.Deginfo && auditObj.Deginfo.Custom ? ensureArray(auditObj.Deginfo.Custom) : [];
-        const attributes = customs.filter(c => c["@_Code"] === "ATTRIBUTE").map(c => c["@_Value"]);
-        const hasScipTag = attributes.includes("SCIP");
+        const customs = auditObj.Deginfo && auditObj.Deginfo.Custom
+            ? ensureArray(auditObj.Deginfo.Custom)
+            : [];
 
-        const isLiberalArts = primaryMajorLabel.toLowerCase().includes("liberal arts");
-        const advisorGoals = goals.filter(g => g["@_Code"] === "ADVISOR");
-        const isMeloney = advisorGoals.some(g => g["@_Advisor_name"] && g["@_Advisor_name"].includes("Meloney"));
-        
-        if (hasScipTag || (isLiberalArts && isMeloney)) {
+        const hasScipTag = customs.some(
+            c => c["@_Code"] === "ATTRIBUTE" && c["@_Value"] === "SCIP"
+        );
+
+        if (hasScipTag) {
             status = "Hold";
             notesArr.push("SCIP student detected.");
         }
@@ -323,8 +323,8 @@ function parseAuditXML(auditObj) {
         first_major: majorCount,
         free_electives: elecCount,
         total: totalCourses,
-        status: status, 
-        review_status: "Not Reviewed", 
+        status: status,
+        review_status: "Not Reviewed",
         notes: notes,
         missing_requirements: missingArr.join(", ")
     };
@@ -355,44 +355,44 @@ function countMissingRules(rules, targetLabels = null) {
 function calculateMissingClassesForRule(rule) {
     const percent = String(rule["@_Per_complete"] || "");
     if (percent.startsWith("100") || percent.startsWith("98")) return 0;
-    
+
     let requiredClasses = 0;
     let appliedClasses = 0;
-    
+
     if (rule.Requirement) {
         // Handle Class-based requirements
         if (rule.Requirement["@_Classes_begin"]) {
             requiredClasses = parseInt(rule.Requirement["@_Classes_begin"], 10);
-            
+
             if (rule.Classes_applied !== undefined) appliedClasses = parseInt(rule.Classes_applied, 10);
             else if (rule["@_Classes_applied"] !== undefined) appliedClasses = parseInt(rule["@_Classes_applied"], 10);
-            
+
             const missing = requiredClasses - appliedClasses;
             return missing > 0 ? missing : 0;
-        } 
+        }
         // Handle Credit-based requirements
         else if (rule.Requirement["@_Credits_begin"]) {
             const requiredCredits = parseInt(rule.Requirement["@_Credits_begin"], 10);
             let appliedCredits = 0;
-            
+
             if (rule.Credits_applied !== undefined) appliedCredits = parseInt(rule.Credits_applied, 10);
             else if (rule["@_Credits_applied"] !== undefined) appliedCredits = parseInt(rule["@_Credits_applied"], 10);
-            
+
             const missingCredits = requiredCredits - appliedCredits;
             if (missingCredits <= 0) return 0;
-            
+
             // New Rounding Rule: Floor the division, but round up if remainder is 2
             const classes = Math.floor(missingCredits / 3);
             const remainder = missingCredits % 3;
-            
+
             return classes + (remainder === 2 ? 1 : 0);
         }
     }
-    
+
     // Fallback if no specific tag is found
     appliedClasses = rule["@_Classes_applied"] !== undefined ? parseInt(rule["@_Classes_applied"], 10) : 0;
     const missing = 1 - appliedClasses;
-    return missing > 0 ? missing : 0; 
+    return missing > 0 ? missing : 0;
 }
 
 module.exports = { processDirectory };
