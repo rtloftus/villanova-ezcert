@@ -253,22 +253,22 @@ function parseAuditXML(auditObj) {
 
         if (hasScipTag) {
             status = "HOLD";
-            notesArr.push("SCIP student detected.");
+            notesArr.push("SCIP student.");
         }
 
         if (isAffiliate) {
             status = "HOLD";
-            notesArr.push("Affiliate program (BIO 6100) detected.");
+            notesArr.push("Affiliate program (BIO 6100).");
         }
 
         if (status === "ON TRACK" && langCount > 0) {
             status = "HOLD";
-            notesArr.push("Outstanding language req detected.");
+            notesArr.push("Outstanding language req.");
         }
 
         if (isStudyAbroad) {
             status = "HOLD";
-            notesArr.push("Study abroad (VAB 1000 in progress) detected.");
+            notesArr.push("Study abroad (VAB 1000 in progress).");
         }
         if (upcomingFallCredits > 0 && upcomingFallCredits < 12) {
     status = "HOLD";
