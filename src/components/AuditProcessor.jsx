@@ -257,9 +257,13 @@ export default function AuditProcessor() {
   };
 
   const requestSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
-    setSortConfig({ key, direction });
+    setSortConfig(prev => ({
+      key,
+      direction:
+        prev.key === key && prev.direction === "asc"
+          ? "desc"
+          : "asc"
+    }));
   };
 
   const { uniqueDepts, uniqueMajors, uniqueStatuses } = useMemo(() => {
@@ -290,7 +294,7 @@ export default function AuditProcessor() {
   }, [studentData]);
 
 
-  const uniqueReviewStatuses = [
+  const REVIEW_STATUSES = [
     "Not Reviewed",
     "Needs Attention",
     "Completed"
@@ -391,7 +395,7 @@ export default function AuditProcessor() {
             <div className="filter-controls">
               <select value={filterReviewStatus} onChange={(e) => setFilterReviewStatus(e.target.value)}>
                 <option value="">All Review Statuses</option>
-                {uniqueReviewStatuses.map(stat => <option key={stat} value={stat}>{stat}</option>)}
+                {REVIEW_STATUSES.map(stat => <option key={stat} value={stat}>{stat}</option>)}
               </select>
 
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
