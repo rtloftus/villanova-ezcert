@@ -2,6 +2,25 @@ import React, { useState, useMemo, useEffect } from 'react';
 import './AuditProcessor.css';
 import * as XLSX from 'xlsx-js-style';
 
+const REQUIREMENTS = [
+  ["Humanities", "core_humanities"],
+  ["Philosophy", "core_philosophy"],
+  ["Ethics", "core_ethics"],
+  ["Math", "core_math"],
+  ["Natural Science", "core_nat_sci"],
+  ["Literature", "core_lit"],
+  ["History", "core_history"],
+  ["Social Science", "core_soc_sci"],
+  ["Fine Arts", "core_fine_arts"],
+  ["Theology", "core_theology"],
+  ["Language", "core_language"],
+  ["Diversity", "core_diversity"],
+  ["Major", "first_major"],
+  ["Free Electives", "free_electives"]
+];
+
+const NUMERIC_FIELDS = REQUIREMENTS.map(([_, field]) => field);
+
 export default function AuditProcessor() {
   const [folderPath, setFolderPath] = useState(null);
   const [status, setStatus] = useState('idle');
@@ -101,34 +120,34 @@ export default function AuditProcessor() {
           const cell = worksheet[XLSX.utils.encode_cell({ c: statusColIndex, r: R })];
           if (!cell) continue;
           let bgColor = null;
-let textColor = null;
+          let textColor = null;
 
-if (cell.v === 'OK') {
-  bgColor = '006000';
-  textColor = 'C5EFCD';
-} else if (cell.v === 'DELETE') {
-  bgColor = 'FFC7CE';
-  textColor = '9C0006';
-} else if (cell.v === 'HOLD') {
-  bgColor = 'FCE4D6';
-  textColor = '9C5700';
-} else if (cell.v === 'ON TRACK') {
-  bgColor = 'C6EFCE';
-  textColor = '006100';
-}
+          if (cell.v === 'OK') {
+            bgColor = '006000';
+            textColor = 'C5EFCD';
+          } else if (cell.v === 'DELETE') {
+            bgColor = 'FFC7CE';
+            textColor = '9C0006';
+          } else if (cell.v === 'HOLD') {
+            bgColor = 'FFEB9C';
+            textColor = '9C5700';
+          } else if (cell.v === 'ON TRACK') {
+            bgColor = 'C6EFCE';
+            textColor = '006100';
+          }
 
-if (bgColor) {
-  cell.s = {
-    fill: {
-      patternType: 'solid',
-      fgColor: { rgb: bgColor }
-    },
-    font: {
-      color: { rgb: textColor },
-      bold: true
-    }
-  };
-}
+          if (bgColor) {
+            cell.s = {
+              fill: {
+                patternType: 'solid',
+                fgColor: { rgb: bgColor }
+              },
+              font: {
+                color: { rgb: textColor },
+                bold: true
+              }
+            };
+          }
         }
       }
 
@@ -170,43 +189,31 @@ if (bgColor) {
   const handleRowClick = (student) => {
     setSelectedStudent(student);
 
+    const emptyFields = Object.fromEntries(
+      NUMERIC_FIELDS.map(field => [field, ""])
+    );
+
     setEditData({
       ...student,
-
-      overall_hours: "",
-
-      core_humanities: "",
-      core_philosophy: "",
-      core_ethics: "",
-      core_math: "",
-      core_nat_sci: "",
-      core_lit: "",
-      core_history: "",
-      core_soc_sci: "",
-      core_fine_arts: "",
-      core_theology: "",
-      core_language: "",
-      core_diversity: "",
-      first_major: "",
-      free_electives: ""
+      ...emptyFields
     });
   };
 
   const handleClearDatabase = async () => {
-  const confirmed = window.confirm(
-    "Are you sure you want to clear the database?\n\nThis will permanently delete all review data, notes, statuses, and edits. This action cannot be undone."
-  );
+    const confirmed = window.confirm(
+      "Are you sure you want to clear the database?\n\nThis will permanently delete all review data, notes, statuses, and edits. This action cannot be undone."
+    );
 
-  if (!confirmed) return;
+    if (!confirmed) return;
 
-  await window.electronAPI.clearDatabase();
+    await window.electronAPI.clearDatabase();
 
-  setStudentData(null);
-  setStatus("idle");
-  setSelectedStudent(null);
+    setStudentData(null);
+    setStatus("idle");
+    setSelectedStudent(null);
 
-  alert("Database cleared successfully.");
-};
+    alert("Database cleared successfully.");
+  };
 
   const handleSaveDetails = async () => {
     const updated = {
@@ -214,23 +221,7 @@ if (bgColor) {
       ...editData
     };
 
-    [
-      "overall_hours",
-      "core_humanities",
-      "core_philosophy",
-      "core_ethics",
-      "core_math",
-      "core_nat_sci",
-      "core_lit",
-      "core_history",
-      "core_soc_sci",
-      "core_fine_arts",
-      "core_theology",
-      "core_language",
-      "core_diversity",
-      "first_major",
-      "free_electives"
-    ].forEach(field => {
+    NUMERIC_FIELDS.forEach(field => {
       if (updated[field] === "") {
         updated[field] = selectedStudent[field];
       } else {
@@ -238,40 +229,14 @@ if (bgColor) {
       }
     });
 
-    updated.total =
-      updated.core_humanities +
-      updated.core_philosophy +
-      updated.core_ethics +
-      updated.core_math +
-      updated.core_nat_sci +
-      updated.core_lit +
-      updated.core_history +
-      updated.core_soc_sci +
-      updated.core_fine_arts +
-      updated.core_theology +
-      updated.core_language +
-      updated.core_diversity +
-      updated.first_major +
-      updated.free_electives;
+    updated.total = NUMERIC_FIELDS.reduce(
+      (sum, field) => sum + updated[field],
+      0
+    );
 
     const missing = [];
 
-    [
-      ["Humanities", "core_humanities"],
-      ["Philosophy", "core_philosophy"],
-      ["Ethics", "core_ethics"],
-      ["Math", "core_math"],
-      ["Nat Sci", "core_nat_sci"],
-      ["Lit", "core_lit"],
-      ["History", "core_history"],
-      ["Soc Sci", "core_soc_sci"],
-      ["Fine Arts", "core_fine_arts"],
-      ["Theology", "core_theology"],
-      ["Language", "core_language"],
-      ["Diversity", "core_diversity"],
-      ["Major", "first_major"],
-      ["Electives", "free_electives"],
-    ].forEach(([label, field]) => {
+    REQUIREMENTS.forEach(([label, field]) => {
       if (updated[field] > 0) {
         missing.push(`${updated[field]} ${label}`);
       }
@@ -297,31 +262,85 @@ if (bgColor) {
     setSortConfig({ key, direction });
   };
 
-  const { processedData, uniqueDepts, uniqueMajors, uniqueStatuses, uniqueReviewStatuses } = useMemo(() => {
-    if (!studentData) return { processedData: [], uniqueDepts: [], uniqueMajors: [], uniqueStatuses: [], uniqueReviewStatuses: [] };
+  const { uniqueDepts, uniqueMajors, uniqueStatuses } = useMemo(() => {
+    if (!studentData) {
+      return {
+        uniqueDepts: [],
+        uniqueMajors: [],
+        uniqueStatuses: []
+      };
+    }
 
-    let sortableItems = Object.values(studentData);
+    const students = Object.values(studentData);
 
-    const depts = [...new Set(sortableItems.map(s => s.dept))].filter(Boolean).sort();
-    const majors = [...new Set(sortableItems.map(s => s.major1))].filter(Boolean).sort();
-    const statuses = [...new Set(sortableItems.map(s => s.status))].filter(Boolean).sort();
-    const reviewStatuses = ["Not Reviewed", "Needs Attention", "Completed"];
+    return {
+      uniqueDepts: [...new Set(students.map(s => s.dept))]
+        .filter(Boolean)
+        .sort(),
 
-    if (filterDept) sortableItems = sortableItems.filter(s => s.dept === filterDept);
-    if (filterMajor) sortableItems = sortableItems.filter(s => s.major1 === filterMajor);
-    if (filterStatus) sortableItems = sortableItems.filter(s => s.status === filterStatus);
-    if (filterReviewStatus) sortableItems = sortableItems.filter(s => s.review_status === filterReviewStatus);
+      uniqueMajors: [...new Set(students.map(s => s.major1))]
+        .filter(Boolean)
+        .sort(),
 
-    if (sortConfig.key !== null) {
-      sortableItems.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+      uniqueStatuses: [...new Set(students.map(s => s.status))]
+        .filter(Boolean)
+        .sort()
+    };
+
+  }, [studentData]);
+
+
+  const uniqueReviewStatuses = [
+    "Not Reviewed",
+    "Needs Attention",
+    "Completed"
+  ];
+
+
+  const processedData = useMemo(() => {
+
+    if (!studentData) return [];
+
+    let data = Object.values(studentData);
+
+
+    if (filterDept)
+      data = data.filter(s => s.dept === filterDept);
+
+    if (filterMajor)
+      data = data.filter(s => s.major1 === filterMajor);
+
+    if (filterStatus)
+      data = data.filter(s => s.status === filterStatus);
+
+    if (filterReviewStatus)
+      data = data.filter(s => s.review_status === filterReviewStatus);
+
+
+    if (sortConfig.key) {
+      data = [...data].sort((a, b) => {
+
+        if (a[sortConfig.key] < b[sortConfig.key])
+          return sortConfig.direction === "asc" ? -1 : 1;
+
+        if (a[sortConfig.key] > b[sortConfig.key])
+          return sortConfig.direction === "asc" ? 1 : -1;
+
         return 0;
       });
     }
 
-    return { processedData: sortableItems, uniqueDepts: depts, uniqueMajors: majors, uniqueStatuses: statuses, uniqueReviewStatuses: reviewStatuses };
-  }, [studentData, filterDept, filterMajor, filterStatus, filterReviewStatus, sortConfig]);
+
+    return data;
+
+  }, [
+    studentData,
+    filterDept,
+    filterMajor,
+    filterStatus,
+    filterReviewStatus,
+    sortConfig
+  ]);
 
   return (
     <div className="audit-container">
@@ -525,22 +544,7 @@ if (bgColor) {
             <div className="modal-section">
               <h4>Missing Requirements</h4>
 
-              {[
-                ["Humanities", "core_humanities"],
-                ["Philosophy", "core_philosophy"],
-                ["Ethics", "core_ethics"],
-                ["Math", "core_math"],
-                ["Natural Science", "core_nat_sci"],
-                ["Literature", "core_lit"],
-                ["History", "core_history"],
-                ["Social Science", "core_soc_sci"],
-                ["Fine Arts", "core_fine_arts"],
-                ["Theology", "core_theology"],
-                ["Language", "core_language"],
-                ["Diversity", "core_diversity"],
-                ["Major", "first_major"],
-                ["Free Electives", "free_electives"],
-              ].map(([label, field]) => (
+              {REQUIREMENTS.map(([label, field]) => (
                 <div
                   key={field}
                   style={{
@@ -559,10 +563,10 @@ if (bgColor) {
                     value={editData[field]}
                     placeholder={selectedStudent[field]}
                     onChange={(e) =>
-                      setEditData({
-                        ...editData,
+                      setEditData(prev => ({
+                        ...prev,
                         [field]: e.target.value
-                      })
+                      }))
                     }
                   />
                 </div>
@@ -577,17 +581,17 @@ if (bgColor) {
                   <select
                     value={editData.status || ""}
                     onChange={(e) =>
-                      setEditData({
-                        ...editData,
+                      setEditData(prev => ({
+                        ...prev,
                         status: e.target.value
-                      })
+                      }))
                     }
                     className="status-dropdown"
                   >
                     <option value="OK">OK</option>
-<option value="ON TRACK">ON TRACK</option>
-<option value="HOLD">HOLD</option>
-<option value="DELETE">DELETE</option>
+                    <option value="ON TRACK">ON TRACK</option>
+                    <option value="HOLD">HOLD</option>
+                    <option value="DELETE">DELETE</option>
                   </select>
                 </div>
 
@@ -596,10 +600,10 @@ if (bgColor) {
                   <select
                     value={editData.review_status || ""}
                     onChange={(e) =>
-                      setEditData({
-                        ...editData,
+                      setEditData(prev => ({
+                        ...prev,
                         review_status: e.target.value
-                      })
+                      }))
                     }
                     className="status-dropdown"
                   >
@@ -614,10 +618,10 @@ if (bgColor) {
               <textarea
                 value={editData.notes || ""}
                 onChange={(e) =>
-                  setEditData({
-                    ...editData,
+                  setEditData(prev => ({
+                    ...prev,
                     notes: e.target.value
-                  })
+                  }))
                 }
                 rows={4}
                 className="notes-textarea"
@@ -633,24 +637,24 @@ if (bgColor) {
         </div>
       )}
       <div
-  style={{
-    marginTop: "40px",
-    paddingTop: "20px",
-    borderTop: "1px solid #ddd",
-    textAlign: "center"
-  }}
->
-  <button
-    className="button"
-    style={{
-      backgroundColor: "#d32f2f",
-      color: "white"
-    }}
-    onClick={handleClearDatabase}
-  >
-    Clear Database
-  </button>
-</div>
+        style={{
+          marginTop: "40px",
+          paddingTop: "20px",
+          borderTop: "1px solid #ddd",
+          textAlign: "center"
+        }}
+      >
+        <button
+          className="button"
+          style={{
+            backgroundColor: "#d32f2f",
+            color: "white"
+          }}
+          onClick={handleClearDatabase}
+        >
+          Clear Database
+        </button>
+      </div>
     </div>
   );
 }
