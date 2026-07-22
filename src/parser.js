@@ -125,6 +125,7 @@ function parseAuditXML(auditObj) {
 
     let isStudyAbroad = false;
     let isAffiliate = false;
+    let upcomingFallCredits = 0;
 
     clsInfo.forEach(c => {
         if (c["@_Term"] && c["@_Term"] < minTerm) {
@@ -136,6 +137,12 @@ function parseAuditXML(auditObj) {
         if (c["@_Discipline"] === "BIO" && c["@_Number"] === "6100") {
             isAffiliate = true;
         }
+        if (
+        (c["@_In_progress"] === "Y" || c["@_preregistered"] === "Y") &&
+        c["@_Credits"]
+    ) {
+        upcomingFallCredits += Number(c["@_Credits"]);
+    }
     });
     const catalogTerm = minTerm === "999999" ? "-" : minTerm;
 
@@ -263,6 +270,10 @@ function parseAuditXML(auditObj) {
             status = "HOLD";
             notesArr.push("Study abroad (VAB 1000 in progress) detected.");
         }
+        if (upcomingFallCredits > 0 && upcomingFallCredits < 12) {
+    status = "HOLD";
+    notesArr.push(`Only registered for ${upcomingFallCredits} credits in upcoming semester.`);
+}
     }
 
     const notes = notesArr.join(" ");
