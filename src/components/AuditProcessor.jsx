@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import './AuditProcessor.css';
 import * as XLSX from 'xlsx-js-style';
 
@@ -10,9 +10,7 @@ export default function AuditProcessor() {
 
   // Modal State
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [editNotes, setEditNotes] = useState('');
-  const [editStatus, setEditStatus] = useState('');
-  const [editReviewStatus, setEditReviewStatus] = useState('');
+  const [editData, setEditData] = useState({});
 
   // Sort and Filter State
   const [filterDept, setFilterDept] = useState('');
@@ -22,6 +20,19 @@ export default function AuditProcessor() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const [splitByDept, setSplitByDept] = useState(false);
+
+  useEffect(() => {
+    async function loadStudents() {
+      const students = await window.electronAPI.getStudents();
+
+      if (students.length > 0) {
+        setStudentData(students);
+        setStatus("success");
+      }
+    }
+
+    loadStudents();
+  }, []);
 
   const handleSelectFolder = async () => {
     const path = await window.electronAPI.selectFolder();
@@ -56,18 +67,18 @@ export default function AuditProcessor() {
     if (!studentData) return;
 
     const dataForExcel = processedData.map(s => ({
-      "Grad Status": s.status, "Review Status": s.review_status, "VUID": s.vuid, "Last": s.last_name, "First": s.first_name, 
-      "Class Code": s.clas, "Catalog Term": s.catalog_term, "Exp Grad Date": s.exp_grad_date, 
-      "Program": s.program, "Dept": s.dept, "Major1": s.major1, "Major2": s.major2, 
-      "Major3": s.major3, "Major4": s.major4, "Minor1": s.minor1, "Minor2": s.minor2, 
-      "Minor3": s.minor3, "Minor4": s.minor4, "Conc1": s.conc1, "Conc2": s.conc2, 
-      "Conc3": s.conc3, "Conc4": s.conc4, "Overall Hours Earned": s.overall_hours, 
-      "Core Humanities": s.core_humanities, "Core Philosophy": s.core_philosophy, 
-      "Core Ethics": s.core_ethics, "Core Math": s.core_math, "Core Natural Science": s.core_nat_sci, 
-      "Core Lit": s.core_lit, "Core History": s.core_history, "Core Soc Sci": s.core_soc_sci, 
-      "Core Fine Arts": s.core_fine_arts, "Core Theology": s.core_theology, 
-      "Core Language": s.core_language, "Core Diversity": s.core_diversity, 
-      "1st Major": s.first_major, "Free Electives": s.free_electives, "Total": s.total, 
+      "Grad Status": s.status, "Review Status": s.review_status, "VUID": s.vuid, "Last": s.last_name, "First": s.first_name,
+      "Class Code": s.clas, "Catalog Term": s.catalog_term, "Exp Grad Date": s.exp_grad_date,
+      "Program": s.program, "Dept": s.dept, "Major1": s.major1, "Major2": s.major2,
+      "Major3": s.major3, "Major4": s.major4, "Minor1": s.minor1, "Minor2": s.minor2,
+      "Minor3": s.minor3, "Minor4": s.minor4, "Conc1": s.conc1, "Conc2": s.conc2,
+      "Conc3": s.conc3, "Conc4": s.conc4, "Overall Hours Earned": s.overall_hours,
+      "Core Humanities": s.core_humanities, "Core Philosophy": s.core_philosophy,
+      "Core Ethics": s.core_ethics, "Core Math": s.core_math, "Core Natural Science": s.core_nat_sci,
+      "Core Lit": s.core_lit, "Core History": s.core_history, "Core Soc Sci": s.core_soc_sci,
+      "Core Fine Arts": s.core_fine_arts, "Core Theology": s.core_theology,
+      "Core Language": s.core_language, "Core Diversity": s.core_diversity,
+      "1st Major": s.first_major, "Free Electives": s.free_electives, "Total": s.total,
       "NOTES": s.notes, "Missing Requirements": s.missing_requirements
     }));
 
@@ -75,7 +86,7 @@ export default function AuditProcessor() {
 
     const applyStylesToSheet = (worksheet) => {
       const range = XLSX.utils.decode_range(worksheet['!ref']);
-      
+
       let statusColIndex = -1;
       let reviewColIndex = -1;
       for (let C = range.s.c; C <= range.e.c; ++C) {
@@ -90,16 +101,16 @@ export default function AuditProcessor() {
           const cell = worksheet[XLSX.utils.encode_cell({ c: statusColIndex, r: R })];
           if (!cell) continue;
           let bgColor = null;
-          if (cell.v === 'Delete') bgColor = 'D32F2F'; 
-          else if (cell.v === 'Hold') bgColor = 'F57C00'; 
-          else if (cell.v === 'On Track') bgColor = '2E7D32'; 
+          if (cell.v === 'Delete') bgColor = 'D32F2F';
+          else if (cell.v === 'Hold') bgColor = 'F57C00';
+          else if (cell.v === 'On Track') bgColor = '2E7D32';
 
           if (bgColor) {
             cell.s = { fill: { patternType: 'solid', fgColor: { rgb: bgColor } }, font: { color: { rgb: 'FFFFFF' }, bold: true } };
           }
         }
       }
-      
+
       // Highlight "needs attention"
       if (reviewColIndex !== -1) {
         for (let R = 1; R <= range.e.r; ++R) {
@@ -122,13 +133,13 @@ export default function AuditProcessor() {
 
       Object.keys(groupedData).sort().forEach(deptName => {
         let worksheet = XLSX.utils.json_to_sheet(groupedData[deptName]);
-        worksheet = applyStylesToSheet(worksheet); 
+        worksheet = applyStylesToSheet(worksheet);
         const safeSheetName = deptName.replace(/[\\/?*[\]]/g, '').substring(0, 31);
         XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName);
       });
     } else {
       let worksheet = XLSX.utils.json_to_sheet(dataForExcel);
-      worksheet = applyStylesToSheet(worksheet); 
+      worksheet = applyStylesToSheet(worksheet);
       XLSX.utils.book_append_sheet(workbook, worksheet, "Audit Report");
     }
 
@@ -137,21 +148,20 @@ export default function AuditProcessor() {
 
   const handleRowClick = (student) => {
     setSelectedStudent(student);
-    setEditStatus(student.status || 'On Track');
-    setEditReviewStatus(student.review_status || 'Not Reviewed');
-    setEditNotes(student.notes || '');
+    setEditData({ ...student });
   };
 
-  const handleSaveDetails = () => {
-    setStudentData(prevData => ({
-      ...prevData,
-      [selectedStudent.unique_id]: {
-        ...prevData[selectedStudent.unique_id],
-        status: editStatus,
-        review_status: editReviewStatus,
-        notes: editNotes
-      }
-    }));
+  const handleSaveDetails = async () => {
+    await window.electronAPI.updateStudent(editData);
+
+    setStudentData(prev =>
+      prev.map(student =>
+        student.unique_id === selectedStudent.unique_id
+          ? editData
+          : student
+      )
+    );
+
     setSelectedStudent(null);
   };
 
@@ -202,17 +212,17 @@ export default function AuditProcessor() {
         >
           {status === 'processing' ? 'Processing XML...' : 'Run Processor'}
         </button>
-        
+
         {status === 'success' && studentData && (
           <div className="export-controls" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button className="button export" onClick={handleExportXLSX}>
               Export to XLSX
             </button>
             <label style={{ fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <input 
-                type="checkbox" 
-                checked={splitByDept} 
-                onChange={(e) => setSplitByDept(e.target.checked)} 
+              <input
+                type="checkbox"
+                checked={splitByDept}
+                onChange={(e) => setSplitByDept(e.target.checked)}
               />
               Split into Department Tabs
             </label>
@@ -232,7 +242,7 @@ export default function AuditProcessor() {
         <div className="table-wrapper">
           <div className="table-header-controls">
             <h3 className="success-text">Showing {processedData.length} of {Object.keys(studentData).length} programs.</h3>
-            
+
             <div className="filter-controls">
               <select value={filterReviewStatus} onChange={(e) => setFilterReviewStatus(e.target.value)}>
                 <option value="">All Review Statuses</option>
@@ -255,7 +265,7 @@ export default function AuditProcessor() {
               </select>
             </div>
           </div>
-          
+
           <div className="scrollable-table">
             <table>
               <thead>
@@ -295,20 +305,20 @@ export default function AuditProcessor() {
               </thead>
               <tbody>
                 {processedData.map((s, idx) => (
-                  <tr 
-                    key={s.unique_id || idx} 
+                  <tr
+                    key={s.unique_id || idx}
                     onClick={() => handleRowClick(s)}
                     className="clickable-row"
                   >
-                    <td style={{ 
-                        backgroundColor: s.review_status === 'Needs Attention' ? '#FFF9C4' : 
-                                         s.review_status === 'Completed' ? '#E8F5E9' : 'transparent',
+                    <td style={{
+                      backgroundColor: s.review_status === 'Needs Attention' ? '#FFF9C4' :
+                        s.review_status === 'Completed' ? '#E8F5E9' : 'transparent',
                     }}>
                       {s.review_status}
                     </td>
-                    <td style={{ 
-                        fontWeight: 'bold', 
-                        color: s.status === 'Delete' ? '#d32f2f' : s.status === 'Hold' ? '#f57c00' : '#2e7d32' 
+                    <td style={{
+                      fontWeight: 'bold',
+                      color: s.status === 'Delete' ? '#d32f2f' : s.status === 'Hold' ? '#f57c00' : '#2e7d32'
                     }}>
                       {s.status}
                     </td>
@@ -342,13 +352,25 @@ export default function AuditProcessor() {
               <h3>{selectedStudent.first_name} {selectedStudent.last_name} ({selectedStudent.vuid})</h3>
               <button className="close-button" onClick={() => setSelectedStudent(null)}>X</button>
             </div>
-            
+
             <div className="modal-grid">
               <div className="modal-section">
                 <h4>Student Information</h4>
                 <p><strong>Class:</strong> {selectedStudent.clas}</p>
                 <p><strong>Exp Grad Date:</strong> {selectedStudent.exp_grad_date}</p>
-                <p><strong>Credits Completed:</strong> {selectedStudent.overall_hours}</p>
+                <p>
+                  <strong>Credits Completed:</strong>
+                  <input
+                    type="number"
+                    value={editData.overall_hours || 0}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        overall_hours: Number(e.target.value)
+                      })
+                    }
+                  />
+                </p>
                 <p><strong>Total Courses Needed:</strong> {selectedStudent.total}</p>
               </div>
 
@@ -363,17 +385,30 @@ export default function AuditProcessor() {
 
             <div className="modal-section">
               <h4>Missing Course Counts & Unmet Requirements</h4>
-              <p>{selectedStudent.missing_requirements || "None"}</p>
+              <textarea
+                value={editData.missing_requirements || ""}
+                onChange={(e) =>
+                  setEditData({
+                    ...editData,
+                    missing_requirements: e.target.value
+                  })
+                }
+              />
             </div>
 
             <div className="modal-section edit-section">
-              
+
               <div style={{ display: 'flex', gap: '20px' }}>
                 <div style={{ flex: 1 }}>
                   <h4>Graduation Status</h4>
-                  <select 
-                    value={editStatus} 
-                    onChange={(e) => setEditStatus(e.target.value)}
+                  <select
+                    value={editData.status || ""}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        status: e.target.value
+                      })
+                    }
                     className="status-dropdown"
                   >
                     <option value="On Track">On Track</option>
@@ -381,12 +416,17 @@ export default function AuditProcessor() {
                     <option value="Delete">Delete</option>
                   </select>
                 </div>
-                
+
                 <div style={{ flex: 1 }}>
                   <h4>Review Status</h4>
-                  <select 
-                    value={editReviewStatus} 
-                    onChange={(e) => setEditReviewStatus(e.target.value)}
+                  <select
+                    value={editData.review_status || ""}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        review_status: e.target.value
+                      })
+                    }
                     className="status-dropdown"
                   >
                     <option value="Not Reviewed">Not Reviewed</option>
@@ -397,9 +437,14 @@ export default function AuditProcessor() {
               </div>
 
               <h4>Reviewer Notes</h4>
-              <textarea 
-                value={editNotes} 
-                onChange={(e) => setEditNotes(e.target.value)}
+              <textarea
+                value={editData.notes || ""}
+                onChange={(e) =>
+                  setEditData({
+                    ...editData,
+                    notes: e.target.value
+                  })
+                }
                 rows={4}
                 className="notes-textarea"
                 placeholder="Add review notes here..."
