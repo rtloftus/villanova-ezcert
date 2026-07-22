@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectFolder: () => ipcRenderer.invoke('dialog:openDirectory'),
     processAudits: (folderPath) => ipcRenderer.invoke('parser:run', folderPath),
     getStudents: () => ipcRenderer.invoke('database:getStudents'),
-    updateStudent: (student) => ipcRenderer.invoke('database:updateStudent', student)
+    updateStudent: (student) => ipcRenderer.invoke('database:updateStudent', student),
+    clearDatabase: () => ipcRenderer.invoke("clear-database"),
 });
 

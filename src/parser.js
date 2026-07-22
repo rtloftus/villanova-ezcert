@@ -226,7 +226,7 @@ function parseAuditXML(auditObj) {
     const hasInProgress = auditObj.In_progress && (parseInt(auditObj.In_progress["@_Classes"], 10) > 0);
     const isDecGrad = (totalCourses === 0 && hasInProgress);
 
-    let status = totalCourses > 7 ? "DELETE" : "ON TRACK";
+    let status = totalCourses >= 7 ? "DELETE" : "ON TRACK";
 
     // --- OVERRIDE LOGIC ---
     if (isAwarded) {

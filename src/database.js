@@ -288,6 +288,11 @@ function updateStudent(student) {
     );
 }
 
+function clearDatabase() {
+    db.exec("DELETE FROM students");
+    return { success: true };
+}
+
 function closeDatabase() {
     db.close();
 }
@@ -297,5 +302,6 @@ module.exports = {
     getStudents,
     updateReview,
     closeDatabase,
-    updateStudent
+    updateStudent,
+    clearDatabase
 };

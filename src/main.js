@@ -6,7 +6,8 @@ const {
     saveStudents,
     getStudents,
     updateReview,
-    updateStudent
+    updateStudent,
+    clearDatabase
 } = require('./database');
 
 function createWindow() {
@@ -66,6 +67,11 @@ ipcMain.handle("database:updateStudent", (_, student) => {
     updateStudent(student);
     return { success: true };
 });
+
+ipcMain.handle("clear-database", async () => {
+  return await clearDatabase();
+});
+
 
 ipcMain.handle(
     "database:updateReview",

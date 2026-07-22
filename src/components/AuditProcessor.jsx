@@ -192,6 +192,22 @@ if (bgColor) {
     });
   };
 
+  const handleClearDatabase = async () => {
+  const confirmed = window.confirm(
+    "Are you sure you want to clear the database?\n\nThis will permanently delete all review data, notes, statuses, and edits. This action cannot be undone."
+  );
+
+  if (!confirmed) return;
+
+  await window.electronAPI.clearDatabase();
+
+  setStudentData(null);
+  setStatus("idle");
+  setSelectedStudent(null);
+
+  alert("Database cleared successfully.");
+};
+
   const handleSaveDetails = async () => {
     const updated = {
       ...selectedStudent,
@@ -616,6 +632,25 @@ if (bgColor) {
           </div>
         </div>
       )}
+      <div
+  style={{
+    marginTop: "40px",
+    paddingTop: "20px",
+    borderTop: "1px solid #ddd",
+    textAlign: "center"
+  }}
+>
+  <button
+    className="button"
+    style={{
+      backgroundColor: "#d32f2f",
+      color: "white"
+    }}
+    onClick={handleClearDatabase}
+  >
+    Clear Database
+  </button>
+</div>
     </div>
   );
 }
