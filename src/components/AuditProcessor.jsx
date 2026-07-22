@@ -67,7 +67,7 @@ export default function AuditProcessor() {
     if (!studentData) return;
 
     const dataForExcel = processedData.map(s => ({
-      "Grad Status": s.status, "Review Status": s.review_status, "VUID": s.vuid, "Last": s.last_name, "First": s.first_name,
+      "Review Status": s.review_status, "Grad Status": s.status, "VUID": s.vuid, "Last": s.last_name, "First": s.first_name,
       "Class Code": s.clas, "Catalog Term": s.catalog_term, "Exp Grad Date": s.exp_grad_date,
       "Program": s.program, "Dept": s.dept, "Major1": s.major1, "Major2": s.major2,
       "Major3": s.major3, "Major4": s.major4, "Minor1": s.minor1, "Minor2": s.minor2,
@@ -101,13 +101,34 @@ export default function AuditProcessor() {
           const cell = worksheet[XLSX.utils.encode_cell({ c: statusColIndex, r: R })];
           if (!cell) continue;
           let bgColor = null;
-          if (cell.v === 'Delete') bgColor = 'D32F2F';
-          else if (cell.v === 'Hold') bgColor = 'F57C00';
-          else if (cell.v === 'On Track') bgColor = '2E7D32';
+let textColor = null;
 
-          if (bgColor) {
-            cell.s = { fill: { patternType: 'solid', fgColor: { rgb: bgColor } }, font: { color: { rgb: 'FFFFFF' }, bold: true } };
-          }
+if (cell.v === 'OK') {
+  bgColor = '006000';
+  textColor = 'C5EFCD';
+} else if (cell.v === 'DELETE') {
+  bgColor = 'FFC7CE';
+  textColor = '9C0006';
+} else if (cell.v === 'HOLD') {
+  bgColor = 'FCE4D6';
+  textColor = '9C5700';
+} else if (cell.v === 'ON TRACK') {
+  bgColor = 'C6EFCE';
+  textColor = '006100';
+}
+
+if (bgColor) {
+  cell.s = {
+    fill: {
+      patternType: 'solid',
+      fgColor: { rgb: bgColor }
+    },
+    font: {
+      color: { rgb: textColor },
+      bold: true
+    }
+  };
+}
         }
       }
 
@@ -148,16 +169,105 @@ export default function AuditProcessor() {
 
   const handleRowClick = (student) => {
     setSelectedStudent(student);
-    setEditData({ ...student });
+
+    setEditData({
+      ...student,
+
+      overall_hours: "",
+
+      core_humanities: "",
+      core_philosophy: "",
+      core_ethics: "",
+      core_math: "",
+      core_nat_sci: "",
+      core_lit: "",
+      core_history: "",
+      core_soc_sci: "",
+      core_fine_arts: "",
+      core_theology: "",
+      core_language: "",
+      core_diversity: "",
+      first_major: "",
+      free_electives: ""
+    });
   };
 
   const handleSaveDetails = async () => {
-    await window.electronAPI.updateStudent(editData);
+    const updated = {
+      ...selectedStudent,
+      ...editData
+    };
+
+    [
+      "overall_hours",
+      "core_humanities",
+      "core_philosophy",
+      "core_ethics",
+      "core_math",
+      "core_nat_sci",
+      "core_lit",
+      "core_history",
+      "core_soc_sci",
+      "core_fine_arts",
+      "core_theology",
+      "core_language",
+      "core_diversity",
+      "first_major",
+      "free_electives"
+    ].forEach(field => {
+      if (updated[field] === "") {
+        updated[field] = selectedStudent[field];
+      } else {
+        updated[field] = Number(updated[field]);
+      }
+    });
+
+    updated.total =
+      updated.core_humanities +
+      updated.core_philosophy +
+      updated.core_ethics +
+      updated.core_math +
+      updated.core_nat_sci +
+      updated.core_lit +
+      updated.core_history +
+      updated.core_soc_sci +
+      updated.core_fine_arts +
+      updated.core_theology +
+      updated.core_language +
+      updated.core_diversity +
+      updated.first_major +
+      updated.free_electives;
+
+    const missing = [];
+
+    [
+      ["Humanities", "core_humanities"],
+      ["Philosophy", "core_philosophy"],
+      ["Ethics", "core_ethics"],
+      ["Math", "core_math"],
+      ["Nat Sci", "core_nat_sci"],
+      ["Lit", "core_lit"],
+      ["History", "core_history"],
+      ["Soc Sci", "core_soc_sci"],
+      ["Fine Arts", "core_fine_arts"],
+      ["Theology", "core_theology"],
+      ["Language", "core_language"],
+      ["Diversity", "core_diversity"],
+      ["Major", "first_major"],
+      ["Electives", "free_electives"],
+    ].forEach(([label, field]) => {
+      if (updated[field] > 0) {
+        missing.push(`${updated[field]} ${label}`);
+      }
+    });
+
+    updated.missing_requirements = missing.join(", ");
+    await window.electronAPI.updateStudent(updated);
 
     setStudentData(prev =>
       prev.map(student =>
         student.unique_id === selectedStudent.unique_id
-          ? editData
+          ? updated
           : student
       )
     );
@@ -316,10 +426,22 @@ export default function AuditProcessor() {
                     }}>
                       {s.review_status}
                     </td>
-                    <td style={{
-                      fontWeight: 'bold',
-                      color: s.status === 'Delete' ? '#d32f2f' : s.status === 'Hold' ? '#f57c00' : '#2e7d32'
-                    }}>
+                    <td
+                      style={{
+                        fontWeight: 'bold',
+                        color:
+                          s.status === 'OK' ? '#C5EFCD' :
+                            s.status === 'DELETE' ? '#9C0006' :
+                              s.status === 'HOLD' ? '#9C5700' :
+                                '#006100',
+
+                        backgroundColor:
+                          s.status === 'OK' ? '#006000' :
+                            s.status === 'DELETE' ? '#FFC7CE' :
+                              s.status === 'HOLD' ? '#FFEB9C' :
+                                '#C6EFCE'
+                      }}
+                    >
                       {s.status}
                     </td>
                     <td>{s.vuid}</td><td>{s.last_name}</td><td>{s.first_name}</td>
@@ -362,16 +484,17 @@ export default function AuditProcessor() {
                   <strong>Credits Completed:</strong>
                   <input
                     type="number"
-                    value={editData.overall_hours || 0}
+                    value={editData.overall_hours}
+                    placeholder={selectedStudent.overall_hours}
                     onChange={(e) =>
                       setEditData({
                         ...editData,
-                        overall_hours: Number(e.target.value)
+                        overall_hours: e.target.value
                       })
                     }
                   />
                 </p>
-                <p><strong>Total Courses Needed:</strong> {selectedStudent.total}</p>
+                <p><strong>Total Courses Needed:</strong> {editData.total}</p>
               </div>
 
               <div className="modal-section">
@@ -384,16 +507,50 @@ export default function AuditProcessor() {
             </div>
 
             <div className="modal-section">
-              <h4>Missing Course Counts & Unmet Requirements</h4>
-              <textarea
-                value={editData.missing_requirements || ""}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    missing_requirements: e.target.value
-                  })
-                }
-              />
+              <h4>Missing Requirements</h4>
+
+              {[
+                ["Humanities", "core_humanities"],
+                ["Philosophy", "core_philosophy"],
+                ["Ethics", "core_ethics"],
+                ["Math", "core_math"],
+                ["Natural Science", "core_nat_sci"],
+                ["Literature", "core_lit"],
+                ["History", "core_history"],
+                ["Social Science", "core_soc_sci"],
+                ["Fine Arts", "core_fine_arts"],
+                ["Theology", "core_theology"],
+                ["Language", "core_language"],
+                ["Diversity", "core_diversity"],
+                ["Major", "first_major"],
+                ["Free Electives", "free_electives"],
+              ].map(([label, field]) => (
+                <div
+                  key={field}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: "8px",
+                    alignItems: "center"
+                  }}
+                >
+                  <label>{label}</label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    style={{ width: "70px" }}
+                    value={editData[field]}
+                    placeholder={selectedStudent[field]}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        [field]: e.target.value
+                      })
+                    }
+                  />
+                </div>
+              ))}
             </div>
 
             <div className="modal-section edit-section">
@@ -411,9 +568,10 @@ export default function AuditProcessor() {
                     }
                     className="status-dropdown"
                   >
-                    <option value="On Track">On Track</option>
-                    <option value="Hold">Hold</option>
-                    <option value="Delete">Delete</option>
+                    <option value="OK">OK</option>
+<option value="ON TRACK">ON TRACK</option>
+<option value="HOLD">HOLD</option>
+<option value="DELETE">DELETE</option>
                   </select>
                 </div>
 

@@ -226,14 +226,14 @@ function parseAuditXML(auditObj) {
     const hasInProgress = auditObj.In_progress && (parseInt(auditObj.In_progress["@_Classes"], 10) > 0);
     const isDecGrad = (totalCourses === 0 && hasInProgress);
 
-    let status = totalCourses > 7 ? "Delete" : "On Track";
+    let status = totalCourses > 7 ? "DELETE" : "ON TRACK";
 
     // --- OVERRIDE LOGIC ---
     if (isAwarded) {
-        status = "Delete";
+        status = "OK";
         notesArr.push("Degree awarded.");
     } else if (isDecGrad) {
-        status = "On Track";
+        status = "ON TRACK";
         notesArr.push("DEC grad.");
     } else {
         const customs = auditObj.Deginfo && auditObj.Deginfo.Custom
@@ -245,29 +245,29 @@ function parseAuditXML(auditObj) {
         );
 
         if (hasScipTag) {
-            status = "Hold";
+            status = "HOLD";
             notesArr.push("SCIP student detected.");
         }
 
         if (isAffiliate) {
-            status = "Hold";
+            status = "HOLD";
             notesArr.push("Affiliate program (BIO 6100) detected.");
         }
 
-        if (status === "On Track" && langCount > 0) {
-            status = "Hold";
+        if (status === "ON TRACK" && langCount > 0) {
+            status = "HOLD";
             notesArr.push("Outstanding language req detected.");
         }
 
         if (isStudyAbroad) {
-            status = "Hold";
+            status = "HOLD";
             notesArr.push("Study abroad (VAB 1000 in progress) detected.");
         }
     }
 
     const notes = notesArr.join(" ");
     const nextYear = new Date().getFullYear() + 1;
-    const expGradDate = status === "On Track" ? `5/31/${nextYear}` : "-";
+    const expGradDate = status === "ON TRACK" ? `5/31/${nextYear}` : "-";
 
     const missingArr = [];
     if (coreReqs.Humanities > 0) missingArr.push(`${coreReqs.Humanities} Humanities`);
