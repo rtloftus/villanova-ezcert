@@ -8,6 +8,8 @@ const {
 } = require("../electron/constants");
 
 const DEBUG = false;
+const harvestedCourses = {};
+const masterCourseCatalog = {}; // <-- NEW: Hold all unique courses
 
 const parser = new XMLParser({
     ignoreAttributes: false,
@@ -34,12 +36,13 @@ function cleanString(str) {
 
 async function processDirectory(directory) {
     const students = {};
+    const masterCourseCatalog = {}; // <-- NEW: Hold all unique courses
+
     const files = fs.readdirSync(directory).filter(file => file.toLowerCase().endsWith(".xml"));
 
     for (const file of files) {
-        const fullPath = path.join(directory, file);
         try {
-            const xmlData = fs.readFileSync(fullPath, "utf8");
+            const xmlData = fs.readFileSync(path.join(directory, file), "utf8");
             const parsed = parser.parse(xmlData);
 
             if (!parsed.Report || !parsed.Report.Audit) continue;
@@ -50,12 +53,27 @@ async function processDirectory(directory) {
                 const studentData = parseAuditXML(audit);
                 if (studentData.vuid) {
                     students[studentData.unique_id] = studentData;
+                    
+                    // --- NEW: Merge harvested courses into the master catalog ---
+                    if (studentData.harvested_courses) {
+                        for (const [key, courseObj] of Object.entries(studentData.harvested_courses)) {
+                            // If we already have it, we could merge attributes here, 
+                            // but simply overwriting with the latest is usually fine for DegreeWorks
+                            masterCourseCatalog[key] = courseObj; 
+                        }
+                    }
                 }
             }
         } catch (e) {
             console.error(`Failed - ${file}:`, e);
         }
     }
+    
+    // --- NEW: Save the master catalog to courses.db ---
+    const { saveCourses } = require("./database"); // Ensure you require this at the top of your file
+    saveCourses(Object.values(masterCourseCatalog));
+    console.log("Harvested:", Object.keys(masterCourseCatalog).length, "unique courses");
+
     return students;
 }
 
@@ -110,6 +128,8 @@ function parseAuditXML(auditObj) {
     let isStudyAbroad = false;
     let isAffiliate = false;
     let upcomingFallCredits = 0;
+    
+    const classList = []; // <-- NEW: Array to hold class objects
 
     clsInfo.forEach(c => {
         if (c["@_Term"] && c["@_Term"] < minTerm) {
@@ -126,6 +146,48 @@ function parseAuditXML(auditObj) {
             c["@_Credits"]
         ) {
             upcomingFallCredits += Number(c["@_Credits"]);
+        }
+
+        // --- NEW: Capture structured class data AND harvest attributes ---
+        const disc = c["@_Discipline"] || "";
+        const num = c["@_Number"] || "";
+        const title = c["@_Course_title"] || "";
+        const credits = Number(c["@_Credits"] || 0);
+
+        // 1. Capture for the student's transcript
+        if (c["@_Passed"] === "Y" || c["@_In_progress"] === "Y") {
+            classList.push({
+                discipline: disc,
+                number: num,
+                title: title,
+                grade: c["@_Letter_grade"] || (c["@_In_progress"] === "Y" ? "IP" : ""),
+                credits: credits,
+                term: c["@_Term"] || ""
+            });
+        }
+
+        // 2. Capture for the MASTER COURSE CATALOG
+        let attributes = [];
+        if (c.Attribute) {
+            const attrs = ensureArray(c.Attribute);
+            // Filter out internal system keys, keep only the actual curriculum attributes
+            attributes = attrs
+                .filter(a => a["@_Code"] === "ATTRIBUTE")
+                .map(a => a["@_Value"]);
+        }
+
+        if (disc && num) {
+            const courseKey = `${disc}-${num}`;
+            // We attach this to the parser output so the orchestrator can collect them
+            if (!auditObj.masterCourses) auditObj.masterCourses = {};
+            
+            harvestedCourses[courseKey] = {
+                discipline: disc,
+                number: num,
+                title: title,
+                credits: credits,
+                attributes: JSON.stringify(attributes)
+            };
         }
     });
     const catalogTerm = minTerm === "999999" ? "-" : minTerm;
@@ -315,7 +377,9 @@ function parseAuditXML(auditObj) {
         status,
         review_status: "Not Reviewed",
         notes,
-        missing_requirements: missingArr.join(", ")
+        missing_requirements: missingArr.join(", "),
+        classes: classList,
+        harvested_courses: harvestedCourses
     };
 }
 

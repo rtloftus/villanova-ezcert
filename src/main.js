@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { processDirectory } = require('./parser');
+const { getStudentClasses } = require('./database'); // Adjust path if needed
 
 const {
     saveStudents,
@@ -9,6 +10,7 @@ const {
     updateStudent,
     clearDatabase
 } = require('./database');
+
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -72,6 +74,10 @@ ipcMain.handle("clear-database", async () => {
   return await clearDatabase();
 });
 
+// Add this alongside your other ipcMain handlers
+ipcMain.handle('get-student-classes', async (event, unique_id) => {
+    return getStudentClasses(unique_id);
+});
 
 ipcMain.handle(
     "database:updateReview",

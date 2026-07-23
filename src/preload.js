@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStudents: () => ipcRenderer.invoke('database:getStudents'),
     updateStudent: (student) => ipcRenderer.invoke('database:updateStudent', student),
     clearDatabase: () => ipcRenderer.invoke("clear-database"),
+    getStudentClasses: (unique_id) => ipcRenderer.invoke('get-student-classes', unique_id)
 });
 

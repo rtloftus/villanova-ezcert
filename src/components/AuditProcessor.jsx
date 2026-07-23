@@ -13,9 +13,11 @@ export default function AuditProcessor() {
   const [errorMessage, setErrorMessage] = useState('');
   const [studentData, setStudentData] = useState(null);
 
+
   // Modal State
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [editData, setEditData] = useState({});
+  const [selectedStudentClasses, setSelectedStudentClasses] = useState([]); // <-- NEW
 
   // Sort and Filter State
   const [filterDept, setFilterDept] = useState('');
@@ -172,8 +174,12 @@ export default function AuditProcessor() {
     XLSX.writeFile(workbook, "Audit_Report.xlsx");
   };
 
-  const handleRowClick = (student) => {
+  const handleRowClick = async (student) => {
     setSelectedStudent(student);
+
+    // Fetch the classes from the DB
+    const classes = await window.electronAPI.getStudentClasses(student.unique_id);
+    setSelectedStudentClasses(classes || []);
 
     const emptyFields = Object.fromEntries(
       NUMERIC_FIELDS.map(field => [field, ""])
@@ -509,7 +515,7 @@ export default function AuditProcessor() {
                   <strong>Credits Completed:</strong>
                   <input
                     type="number"
-                    value={editData.overall_hours}
+                    value={editData.overall_hours ?? ""} // <-- Add the fallback here
                     placeholder={selectedStudent.overall_hours}
                     onChange={(e) =>
                       setEditData({
@@ -528,6 +534,41 @@ export default function AuditProcessor() {
                 {selectedStudent.major1 && <p><strong>Majors:</strong> {[selectedStudent.major1, selectedStudent.major2, selectedStudent.major3, selectedStudent.major4].filter(Boolean).join(", ")}</p>}
                 {selectedStudent.minor1 && <p><strong>Minors:</strong> {[selectedStudent.minor1, selectedStudent.minor2, selectedStudent.minor3, selectedStudent.minor4].filter(Boolean).join(", ")}</p>}
                 {selectedStudent.conc1 && <p><strong>Concentrations:</strong> {[selectedStudent.conc1, selectedStudent.conc2, selectedStudent.conc3, selectedStudent.conc4].filter(Boolean).join(", ")}</p>}
+              </div>
+            </div>
+            <div className="modal-section" style={{ gridColumn: "1 / -1" }}>
+              <h4>Class History</h4>
+              <div style={{ maxHeight: "250px", overflowY: "auto", border: "1px solid #ddd", borderRadius: "4px" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", textAlign: "left" }}>
+                  <thead style={{ position: "sticky", top: 0, backgroundColor: "#f4f4f4" }}>
+                    <tr>
+                      <th style={{ padding: "8px", borderBottom: "2px solid #ccc" }}>Term</th>
+                      <th style={{ padding: "8px", borderBottom: "2px solid #ccc" }}>Course</th>
+                      <th style={{ padding: "8px", borderBottom: "2px solid #ccc" }}>Title</th>
+                      <th style={{ padding: "8px", borderBottom: "2px solid #ccc" }}>Grade</th>
+                      <th style={{ padding: "8px", borderBottom: "2px solid #ccc", textAlign: "right" }}>Credits</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedStudentClasses.length > 0 ? (
+                      selectedStudentClasses.map((cls, idx) => (
+                        <tr key={idx} style={{ borderBottom: "1px solid #eee" }}>
+                          <td style={{ padding: "8px" }}>{cls.term}</td>
+                          <td style={{ padding: "8px" }}>{cls.discipline} {cls.number}</td>
+                          <td style={{ padding: "8px" }}>{cls.title}</td>
+                          <td style={{ padding: "8px" }}>{cls.grade}</td>
+                          <td style={{ padding: "8px", textAlign: "right" }}>{cls.credits}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" style={{ padding: "15px", textAlign: "center", color: "#666" }}>
+                          No class history found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -550,7 +591,7 @@ export default function AuditProcessor() {
                     type="number"
                     min="0"
                     style={{ width: "70px" }}
-                    value={editData[field]}
+                    value={editData[field] ?? ""} // <-- Add the fallback right here
                     placeholder={selectedStudent[field]}
                     onChange={(e) =>
                       setEditData(prev => ({
