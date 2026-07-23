@@ -2,28 +2,12 @@ const fs = require("fs");
 const path = require("path");
 const { XMLParser } = require("fast-xml-parser");
 
-const DEBUG = false;
+const {
+    DEPT_MAPPING,
+    REQUIREMENTS
+} = require("../electron/constants");
 
-// --- DEPARTMENT MAPPING ---
-const DEPT_MAPPING = {
-    "AST": "AST", "BIO": "BIO", "BIOC": "CHM", "BCHE": "CHM", "CHM": "CHM", "CHMB": "CHM",
-    "COM": "COM", "CJRC": "COM", "CMPC": "COM", "CORC": "COM", "CPRC": "COM", "COUN": "COUN",
-    "CSC": "CSC", "CYBS": "CSC", "DDS": "DDS", "ECA": "ECST", "EINT": "ECST", "EPP": "ECST",
-    "EQB": "ECST", "EDU": "EDUC", "EBIO": "EDUC", "EENG": "EDUC", "EMAT": "EDUC", "ESS": "EDUC",
-    "ENG": "ENG", "CRW": "ENG", "ETH": "ETH", "FFS": "FFS", "GEO": "GEV", "ENVS": "GEV",
-    "ENVA": "GEV", "SUSS": "GEV", "ENV": "GEV", "GIS": "GISMa", "GIDS": "GISMa", "GAFR": "GISMa",
-    "GAIS": "GISMa", "GASN": "GISMa", "GCHI": "GISMa", "GCST": "GISMa", "GISA": "GISMa",
-    "GJPN": "GISMa", "GLAS": "GISMa", "GRAS": "GISMa", "AFR": "GISmi", "AIS": "GISmi",
-    "ASIA": "GISmi", "ARB": "GISmi", "CHI": "GISmi", "IRS": "GISmi", "JPN": "GISmi",
-    "RUS": "GISmi", "RAS": "GISmi", "GWS": "GWS", "HUM": "HAT", "CLA": "CLA", "HHMA": "HHMA",
-    "AAH": "HIS", "HIS": "HIS", "LSM": "HIS", "PLAW": "HIS", "ITA": "ITA", "LAS": "LAS",
-    "MAT": "MAT", "STA": "MAT", "MUS": "MUS", "PHI": "PHI", "PHY": "PHY", "PHYA": "PHY",
-    "PJ": "PJ", "PA": "PSA", "PSA": "PSA", "PSC": "PSC", "CBN": "CBN", "CGS": "PSY",
-    "PSY": "PSY", "PSYS": "PSY", "SAR": "SAR", "BSC": "SCI", "LSC": "SCI", "CRM": "SOC",
-    "SOC": "SOC", "SPA": "SPA", "THE": "THE", "THL": "THL", "THL2": "THL", "RST": "THL",
-    "TCSC": "THL", "TECS": "THL", "TFCS": "THL", "WRRH": "WRRH", "LA": "LA", "AA": "AA",
-    "ABIO": "AA", "NS": "NS", "MS": "MS", "ARTE": "ARTE"
-};
+const DEBUG = false;
 
 const parser = new XMLParser({
     ignoreAttributes: false,
@@ -138,11 +122,11 @@ function parseAuditXML(auditObj) {
             isAffiliate = true;
         }
         if (
-        (c["@_In_progress"] === "Y" || c["@_preregistered"] === "Y") &&
-        c["@_Credits"]
-    ) {
-        upcomingFallCredits += Number(c["@_Credits"]);
-    }
+            (c["@_In_progress"] === "Y" || c["@_preregistered"] === "Y") &&
+            c["@_Credits"]
+        ) {
+            upcomingFallCredits += Number(c["@_Credits"]);
+        }
     });
     const catalogTerm = minTerm === "999999" ? "-" : minTerm;
 
@@ -174,23 +158,27 @@ function parseAuditXML(auditObj) {
     // --- Detailed Core Counts & Note Tracking ---
     let notesArr = []; // Define early to catch credit remainders!
 
-    const coreReqs = { Humanities: 0, Philosophy: 0, Ethics: 0, Math: 0, NaturalScience: 0, Literature: 0, History: 0, SocialScience: 0, FineArts: 0, Theology: 0 };
+    const requirementCounts = {};
 
-    if (coreBlock && isBlockIncomplete(coreBlock)) {
-        coreReqs.Humanities = countMissingRules(coreBlock.Rule, ["Ancients", "Moderns"]);
-        coreReqs.Philosophy = countMissingRules(coreBlock.Rule, ["Knowledge"]);
-        coreReqs.Ethics = countMissingRules(coreBlock.Rule, ["Good Life"]);
-        coreReqs.Math = countMissingRules(coreBlock.Rule, ["MATHEMATICS"]);
-        coreReqs.NaturalScience = countMissingRules(coreBlock.Rule, ["NATURAL SCIENCES"]);
-        coreReqs.Literature = countMissingRules(coreBlock.Rule, ["LITERATURE"]);
-        coreReqs.History = countMissingRules(coreBlock.Rule, ["HISTORY"]);
-        coreReqs.SocialScience = countMissingRules(coreBlock.Rule, ["SOCIAL SCIENCE"]);
-        coreReqs.FineArts = countMissingRules(coreBlock.Rule, ["FINE ARTS"]);
-        coreReqs.Theology = countMissingRules(coreBlock.Rule, ["Faith", "THEOLOGY"]);
+    for (const req of REQUIREMENTS) {
+        requirementCounts[req.field] = 0;
     }
 
-    let langCount = (langBlock && isBlockIncomplete(langBlock)) ? 1 : 0;
-    let divCount = calculateMissingDiversity(divBlock);
+    for (const req of REQUIREMENTS) {
+    if (req.special || req.block !== "Core Curriculum") continue;
+
+    requirementCounts[req.field] =
+        coreBlock && isBlockIncomplete(coreBlock)
+            ? countMissingRules(coreBlock.Rule, req.rules)
+            : 0;
+}
+
+    requirementCounts.core_language =
+        langBlock && isBlockIncomplete(langBlock)
+            ? 1
+            : 0;
+    requirementCounts.core_diversity =
+        calculateMissingDiversity(divBlock);
 
     // Major Count + Credit Remainder Logic
     let majorCount = 0;
@@ -208,6 +196,7 @@ function parseAuditXML(auditObj) {
             majorCount = countMissingRules(majorBlock.Rule);
         }
     }
+    requirementCounts.first_major = majorCount;
 
     // Electives Count + Credit Remainder Logic
     let elecCount = 0;
@@ -225,20 +214,12 @@ function parseAuditXML(auditObj) {
             elecCount = countMissingRules(elecBlock.Rule);
         }
     }
+    requirementCounts.free_electives = elecCount;
 
     // --- Status & Totals ---
-    const totalCore =
-    coreReqs.Humanities +
-    coreReqs.Philosophy +
-    coreReqs.Ethics +
-    coreReqs.Math +
-    coreReqs.NaturalScience +
-    coreReqs.Literature +
-    coreReqs.History +
-    coreReqs.SocialScience +
-    coreReqs.FineArts +
-    coreReqs.Theology;
-    const totalCourses = totalCore + langCount + divCount + majorCount + elecCount;
+    const totalCourses =
+        Object.values(requirementCounts)
+            .reduce((a, b) => a + b, 0);
 
     const hasInProgress = auditObj.In_progress && (parseInt(auditObj.In_progress["@_Classes"], 10) > 0);
     const isDecGrad = (totalCourses === 0 && hasInProgress);
@@ -271,7 +252,7 @@ function parseAuditXML(auditObj) {
             notesArr.push("Affiliate program (BIO 6100).");
         }
 
-        if (status === "ON TRACK" && langCount > 0) {
+        if (status === "ON TRACK" && requirementCounts.core_language > 0) {
             status = "HOLD";
             notesArr.push("Outstanding language req.");
         }
@@ -281,9 +262,9 @@ function parseAuditXML(auditObj) {
             notesArr.push("Study abroad (VAB 1000 in progress).");
         }
         if (upcomingFallCredits > 0 && upcomingFallCredits < 12) {
-    status = "HOLD";
-    notesArr.push(`Only registered for ${upcomingFallCredits} credits in upcoming semester.`);
-}
+            status = "HOLD";
+            notesArr.push(`Only registered for ${upcomingFallCredits} credits in upcoming semester.`);
+        }
     }
 
     const notes = notesArr.join(" ");
@@ -291,62 +272,49 @@ function parseAuditXML(auditObj) {
     const expGradDate = status === "ON TRACK" ? `5/31/${nextYear}` : "-";
 
     const missingArr = [];
-    if (coreReqs.Humanities > 0) missingArr.push(`${coreReqs.Humanities} Humanities`);
-    if (coreReqs.Philosophy > 0) missingArr.push(`${coreReqs.Philosophy} Philosophy`);
-    if (coreReqs.Ethics > 0) missingArr.push(`${coreReqs.Ethics} Ethics`);
-    if (coreReqs.Math > 0) missingArr.push(`${coreReqs.Math} Math`);
-    if (coreReqs.NaturalScience > 0) missingArr.push(`${coreReqs.NaturalScience} Nat Sci`);
-    if (coreReqs.Literature > 0) missingArr.push(`${coreReqs.Literature} Lit`);
-    if (coreReqs.History > 0) missingArr.push(`${coreReqs.History} History`);
-    if (coreReqs.SocialScience > 0) missingArr.push(`${coreReqs.SocialScience} Soc Sci`);
-    if (coreReqs.FineArts > 0) missingArr.push(`${coreReqs.FineArts} Fine Arts`);
-    if (coreReqs.Theology > 0) missingArr.push(`${coreReqs.Theology} Theology`);
-    if (langCount > 0) missingArr.push(`${langCount} Language`);
-    if (divCount > 0) missingArr.push(`${divCount} Diversity`);
-    if (majorCount > 0) missingArr.push(`${majorCount} Major`);
-    if (elecCount > 0) missingArr.push(`${elecCount} Electives`);
+
+    for (const req of REQUIREMENTS) {
+
+        const count = requirementCounts[req.field];
+
+        if (count > 0)
+            missingArr.push(`${count} ${req.label}`);
+    }
 
     return {
         unique_id,
         vuid,
         last_name: lastName,
         first_name: firstName,
-        clas: clas,
+        clas,
         catalog_term: catalogTerm,
         exp_grad_date: expGradDate,
         program,
         dept,
+
         major1: majors[0] || "",
         major2: majors[1] || "",
         major3: majors[2] || "",
         major4: majors[3] || "",
+
         minor1: minors[0] || "",
         minor2: minors[1] || "",
         minor3: minors[2] || "",
         minor4: minors[3] || "",
+
         conc1: concs[0] || "",
         conc2: concs[1] || "",
         conc3: concs[2] || "",
         conc4: concs[3] || "",
+
         overall_hours: overallHours,
-        core_humanities: coreReqs.Humanities,
-        core_philosophy: coreReqs.Philosophy,
-        core_ethics: coreReqs.Ethics,
-        core_math: coreReqs.Math,
-        core_nat_sci: coreReqs.NaturalScience,
-        core_lit: coreReqs.Literature,
-        core_history: coreReqs.History,
-        core_soc_sci: coreReqs.SocialScience,
-        core_fine_arts: coreReqs.FineArts,
-        core_theology: coreReqs.Theology,
-        core_language: langCount,
-        core_diversity: divCount,
-        first_major: majorCount,
-        free_electives: elecCount,
+
+        ...requirementCounts,
+
         total: totalCourses,
-        status: status,
+        status,
         review_status: "Not Reviewed",
-        notes: notes,
+        notes,
         missing_requirements: missingArr.join(", ")
     };
 }

@@ -1,25 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import './AuditProcessor.css';
 import * as XLSX from 'xlsx-js-style';
-
-const REQUIREMENTS = [
-  ["Humanities", "core_humanities"],
-  ["Philosophy", "core_philosophy"],
-  ["Ethics", "core_ethics"],
-  ["Math", "core_math"],
-  ["Natural Science", "core_nat_sci"],
-  ["Literature", "core_lit"],
-  ["History", "core_history"],
-  ["Social Science", "core_soc_sci"],
-  ["Fine Arts", "core_fine_arts"],
-  ["Theology", "core_theology"],
-  ["Language", "core_language"],
-  ["Diversity", "core_diversity"],
-  ["Major", "first_major"],
-  ["Free Electives", "free_electives"]
-];
-
-const NUMERIC_FIELDS = REQUIREMENTS.map(([_, field]) => field);
+import {
+  REQUIREMENTS,
+  NUMERIC_FIELDS,
+  REVIEW_STATUSES
+} from "../reactconstants";
 
 export default function AuditProcessor() {
   const [folderPath, setFolderPath] = useState(null);
@@ -236,7 +222,7 @@ export default function AuditProcessor() {
 
     const missing = [];
 
-    REQUIREMENTS.forEach(([label, field]) => {
+    REQUIREMENTS.forEach(({ label, field }) => {
       if (updated[field] > 0) {
         missing.push(`${updated[field]} ${label}`);
       }
@@ -548,7 +534,7 @@ export default function AuditProcessor() {
             <div className="modal-section">
               <h4>Missing Requirements</h4>
 
-              {REQUIREMENTS.map(([label, field]) => (
+              {REQUIREMENTS.map(({ label, field }) => (
                 <div
                   key={field}
                   style={{
