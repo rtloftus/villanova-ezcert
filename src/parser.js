@@ -190,7 +190,7 @@ function parseAuditXML(auditObj) {
     }
 
     let langCount = (langBlock && isBlockIncomplete(langBlock)) ? 1 : 0;
-    let divCount = (divBlock && isBlockIncomplete(divBlock)) ? countMissingRules(divBlock.Rule) : 0;
+    let divCount = calculateMissingDiversity(divBlock);
 
     // Major Count + Credit Remainder Logic
     let majorCount = 0;
@@ -227,7 +227,17 @@ function parseAuditXML(auditObj) {
     }
 
     // --- Status & Totals ---
-    const totalCore = Object.values(coreReqs).reduce((a, b) => a + b, 0);
+    const totalCore =
+    coreReqs.Humanities +
+    coreReqs.Philosophy +
+    coreReqs.Ethics +
+    coreReqs.Math +
+    coreReqs.NaturalScience +
+    coreReqs.Literature +
+    coreReqs.History +
+    coreReqs.SocialScience +
+    coreReqs.FineArts +
+    coreReqs.Theology;
     const totalCourses = totalCore + langCount + divCount + majorCount + elecCount;
 
     const hasInProgress = auditObj.In_progress && (parseInt(auditObj.In_progress["@_Classes"], 10) > 0);
@@ -361,6 +371,24 @@ function countMissingRules(rules, targetLabels = null) {
         }
     }
     return missing;
+}
+
+
+function calculateMissingDiversity(divBlock) {
+    if (!divBlock || !isBlockIncomplete(divBlock)) return 0;
+
+    const rootRule = ensureArray(divBlock.Rule)[0];
+
+    const groupsNeeded = parseInt(
+        rootRule?.Advice?.["@_NumGroupsNeeded"] ?? "",
+        10
+    );
+
+    if (!isNaN(groupsNeeded)) {
+        return groupsNeeded;
+    }
+
+    return countMissingRules(rootRule.Rule);
 }
 
 function calculateMissingClassesForRule(rule) {
