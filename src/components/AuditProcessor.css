@@ -1,7 +1,11 @@
 .audit-container {
-  max-width: 800px;
-  margin: 40px auto;
+  width: 96vw;
+  max-width: none;
+  margin: 20px auto;
   font-family: sans-serif;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .button-row {
@@ -27,6 +31,35 @@
   cursor: not-allowed;
 }
 
+.button.danger {
+  background-color: #d32f2f;
+  color: white;
+  border: none;
+}
+
+.buttonexport {
+  padding: 10px 15px;
+  cursor: pointer;
+  border-radius: 4px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+}
+
+.export-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.checkbox-label {
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .folder-display {
   background: #f4f4f4;
   padding: 10px;
@@ -42,6 +75,9 @@
 
 .success-text {
   color: green;
+  display: flex;
+  align-items: center;
+  margin: 0;
 }
 
 .hold-text {
@@ -76,6 +112,34 @@
   width: 100%;
 }
 
+.table-header-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-controls select {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.filter-controls select:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
 .scrollable-table {
   overflow-x: auto;
   border: 1px solid #ccc;
@@ -102,20 +166,15 @@ th {
   top: 0;
 }
 
-.missing-reqs {
-  white-space: normal;
-  min-width: 200px;
-}
-
-.buttonexport {
-  padding: 10px 15px;
+.sortable-header {
   cursor: pointer;
-  border-radius: 4px;
-  background-color: #28a745;
-  color: white;
-  border: none;
+  user-select: none;
+  transition: background-color 0.2s ease;
 }
 
+.sortable-header:hover {
+  background-color: #e0e0e0;
+}
 
 .clickable-row {
   cursor: pointer;
@@ -126,6 +185,10 @@ th {
   background-color: #f0f4f8;
 }
 
+.missing-reqs {
+  white-space: normal;
+  min-width: 200px;
+}
 
 .modal-overlay {
   position: fixed;
@@ -225,39 +288,114 @@ th {
   margin-top: 24px;
 }
 
-.table-header-controls {
+.tooltip-container {
+  position: relative;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-left: 8px;
 }
 
-.filter-controls {
-  display: flex;
-  gap: 12px;
+.tooltip-icon {
+  cursor: default;
+  font-size: 18px;
+  color: #666;
 }
 
-.filter-controls select {
-  padding: 6px 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+.tooltip-content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  background-color: rgba(228, 228, 228);
+  color: #181818;
+  padding: 8px 12px;
+  border-radius: 6px;
   font-size: 14px;
-  background-color: white;
-  cursor: pointer;
+  white-space: nowrap;
+  z-index: 9999;
+  font-weight: normal;
+  box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
 }
 
-.filter-controls select:focus {
-  outline: none;
-  border-color: #007bff;
+.tooltip-arrow {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: rgba(214, 214, 214, 0.95) transparent transparent transparent;
 }
 
+.context-menu {
+  position: absolute;
+  background-color: #ffffff;
+  border: 1px solid #d3d3d3;
+  box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+  z-index: 9999;
+  padding: 4px 0;
+  border-radius: 6px;
+  min-width: 160px;
+  font-family: sans-serif;
+  font-size: 14px;
+}
 
-.sortable-header {
+.context-menu-item {
+  padding: 10px 16px;
   cursor: pointer;
-  user-select: none;
+  color: #333;
   transition: background-color 0.2s ease;
 }
 
-.sortable-header:hover {
-  background-color: #e0e0e0;
+.context-menu-item:hover {
+  background-color: #f4f4f4;
+}
+
+.class-history-container {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.class-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.class-history-table th {
+  padding: 8px;
+  border-bottom: 2px solid #ccc;
+}
+
+.class-history-table td {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.empty-history {
+  padding: 15px;
+  text-align: center;
+  color: #666;
+}
+
+.clear-database-container {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+  text-align: center;
+}
+
+.missing-reqs-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  align-items: center;
 }

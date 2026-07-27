@@ -12,12 +12,12 @@ export default function AuditProcessor() {
   const [status, setStatus] = useState('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [studentData, setStudentData] = useState(null);
-
+  const [showTooltip, setShowTooltip] = useState(false);
 
   // Modal State
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [editData, setEditData] = useState({});
-  const [selectedStudentClasses, setSelectedStudentClasses] = useState([]); // <-- NEW
+  const [selectedStudentClasses, setSelectedStudentClasses] = useState([]);
 
   // Sort and Filter State
   const [filterDept, setFilterDept] = useState('');
@@ -28,16 +28,39 @@ export default function AuditProcessor() {
 
   const [splitByDept, setSplitByDept] = useState(false);
 
+  // Multi-Cell Highlight & Context Menu State
+  const [highlightedCells, setHighlightedCells] = useState({});
+  const [contextMenu, setContextMenu] = useState(null);
+
+  useEffect(() => {
+    const closeMenu = () => setContextMenu(null);
+    window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
+  }, []);
+
+  const handleContextMenu = (e, student) => {
+    e.preventDefault();
+    setContextMenu({ x: e.pageX, y: e.pageY, student });
+  };
+
+  const toggleCellHighlight = (vuid, colIndex) => {
+    setHighlightedCells(prev => {
+      const key = `${vuid}-${colIndex}`;
+      const newSet = { ...prev };
+      if (newSet[key]) delete newSet[key];
+      else newSet[key] = true;
+      return newSet;
+    });
+  };
+
   useEffect(() => {
     async function loadStudents() {
       const students = await window.electronAPI.getStudents();
-
       if (students.length > 0) {
         setStudentData(students);
         setStatus("success");
       }
     }
-
     loadStudents();
   }, []);
 
@@ -52,6 +75,7 @@ export default function AuditProcessor() {
       setFilterStatus('');
       setFilterReviewStatus('');
       setSortConfig({ key: null, direction: 'asc' });
+      setHighlightedCells({});
     }
   };
 
@@ -91,60 +115,58 @@ export default function AuditProcessor() {
 
     const workbook = XLSX.utils.book_new();
 
-    const applyStylesToSheet = (worksheet) => {
+    const applyStylesToSheet = (worksheet, sourceData) => {
       const range = XLSX.utils.decode_range(worksheet['!ref']);
 
       let statusColIndex = -1;
       let reviewColIndex = -1;
+      
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const headerCell = worksheet[XLSX.utils.encode_cell({ c: C, r: 0 })];
         if (headerCell && headerCell.v === 'Grad Status') statusColIndex = C;
         if (headerCell && headerCell.v === 'Review Status') reviewColIndex = C;
       }
 
-      // Color grad status
-      if (statusColIndex !== -1) {
-        for (let R = 1; R <= range.e.r; ++R) {
-          const cell = worksheet[XLSX.utils.encode_cell({ c: statusColIndex, r: R })];
-          if (!cell) continue;
+      for (let R = 1; R <= range.e.r; ++R) {
+        const rowVUID = sourceData[R - 1].VUID; 
+
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
+          let cell = worksheet[cellAddress];
+          
           let bgColor = null;
           let textColor = null;
+          let isBold = false;
 
-          if (cell.v === 'OK') {
-            bgColor = '006000';
-            textColor = 'C5EFCD';
-          } else if (cell.v === 'DELETE') {
-            bgColor = 'FFC7CE';
-            textColor = '9C0006';
-          } else if (cell.v === 'HOLD') {
-            bgColor = 'FFEB9C';
-            textColor = '9C5700';
-          } else if (cell.v === 'ON TRACK') {
-            bgColor = 'C6EFCE';
-            textColor = '006100';
+          if (C === statusColIndex && cell) {
+            if (cell.v === 'OK') { bgColor = '006000'; textColor = 'C5EFCD'; isBold = true; }
+            else if (cell.v === 'DELETE') { bgColor = 'FFC7CE'; textColor = '9C0006'; isBold = true; }
+            else if (cell.v === 'HOLD') { bgColor = 'FFEB9C'; textColor = '9C5700'; isBold = true; }
+            else if (cell.v === 'ON TRACK') { bgColor = 'C6EFCE'; textColor = '006100'; isBold = true; }
           }
 
-          if (bgColor) {
-            cell.s = {
-              fill: {
-                patternType: 'solid',
-                fgColor: { rgb: bgColor }
-              },
-              font: {
-                color: { rgb: textColor },
-                bold: true
-              }
-            };
+          if (C === reviewColIndex && cell && cell.v === 'Needs Attention') {
+            bgColor = 'FFD54F';
           }
-        }
-      }
 
-      // Highlight "needs attention"
-      if (reviewColIndex !== -1) {
-        for (let R = 1; R <= range.e.r; ++R) {
-          const cell = worksheet[XLSX.utils.encode_cell({ c: reviewColIndex, r: R })];
-          if (cell && cell.v === 'Needs Attention') {
-            cell.s = { fill: { patternType: 'solid', fgColor: { rgb: 'FFD54F' } } }; // Yellow warning
+          if (highlightedCells[`${rowVUID}-${C}`]) {
+            bgColor = 'FFFF00'; 
+          }
+
+          if (bgColor || textColor || isBold) {
+            if (!cell) {
+              worksheet[cellAddress] = { v: "", t: "s" };
+              cell = worksheet[cellAddress];
+            }
+            cell.s = cell.s || {};
+            if (bgColor) cell.s.fill = { patternType: 'solid', fgColor: { rgb: bgColor } };
+            if (textColor || isBold) {
+              cell.s.font = { 
+                ...(cell.s.font || {}), 
+                ...(textColor ? { color: { rgb: textColor } } : {}),
+                ...(isBold ? { bold: true } : {})
+              };
+            }
           }
         }
       }
@@ -161,13 +183,13 @@ export default function AuditProcessor() {
 
       Object.keys(groupedData).sort().forEach(deptName => {
         let worksheet = XLSX.utils.json_to_sheet(groupedData[deptName]);
-        worksheet = applyStylesToSheet(worksheet);
+        worksheet = applyStylesToSheet(worksheet, groupedData[deptName]);
         const safeSheetName = deptName.replace(/[\\/?*[\]]/g, '').substring(0, 31);
         XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName);
       });
     } else {
       let worksheet = XLSX.utils.json_to_sheet(dataForExcel);
-      worksheet = applyStylesToSheet(worksheet);
+      worksheet = applyStylesToSheet(worksheet, dataForExcel);
       XLSX.utils.book_append_sheet(workbook, worksheet, "Audit Report");
     }
 
@@ -176,62 +198,40 @@ export default function AuditProcessor() {
 
   const handleRowClick = async (student) => {
     setSelectedStudent(student);
-
-    // Fetch the classes from the DB
     const classes = await window.electronAPI.getStudentClasses(student.unique_id);
     setSelectedStudentClasses(classes || []);
 
-    const emptyFields = Object.fromEntries(
-      NUMERIC_FIELDS.map(field => [field, ""])
-    );
-
-    setEditData({
-      ...student,
-      ...emptyFields
-    });
+    const emptyFields = Object.fromEntries(NUMERIC_FIELDS.map(field => [field, ""]));
+    setEditData({ ...student, ...emptyFields });
   };
 
   const handleClearDatabase = async () => {
     const confirmed = window.confirm(
       "Are you sure you want to clear the database?\n\nThis will permanently delete all review data, notes, statuses, and edits. This action cannot be undone."
     );
-
     if (!confirmed) return;
 
     await window.electronAPI.clearDatabase();
-
     setStudentData(null);
     setStatus("idle");
     setSelectedStudent(null);
-
+    setHighlightedCells({});
     alert("Database cleared successfully.");
   };
 
   const handleSaveDetails = async () => {
-    const updated = {
-      ...selectedStudent,
-      ...editData
-    };
+    const updated = { ...selectedStudent, ...editData };
 
     NUMERIC_FIELDS.forEach(field => {
-      if (updated[field] === "") {
-        updated[field] = selectedStudent[field];
-      } else {
-        updated[field] = Number(updated[field]);
-      }
+      if (updated[field] === "") updated[field] = selectedStudent[field];
+      else updated[field] = Number(updated[field]);
     });
 
-    updated.total = NUMERIC_FIELDS.reduce(
-      (sum, field) => sum + updated[field],
-      0
-    );
+    updated.total = NUMERIC_FIELDS.reduce((sum, field) => sum + updated[field], 0);
 
     const missing = [];
-
     REQUIREMENTS.forEach(({ label, field }) => {
-      if (updated[field] > 0) {
-        missing.push(`${updated[field]} ${label}`);
-      }
+      if (updated[field] > 0) missing.push(`${updated[field]} ${label}`);
     });
 
     updated.missing_requirements = missing.join(", ");
@@ -239,113 +239,55 @@ export default function AuditProcessor() {
 
     setStudentData(prev =>
       prev.map(student =>
-        student.unique_id === selectedStudent.unique_id
-          ? updated
-          : student
+        student.unique_id === selectedStudent.unique_id ? updated : student
       )
     );
-
     setSelectedStudent(null);
   };
 
   const requestSort = (key) => {
     setSortConfig(prev => ({
       key,
-      direction:
-        prev.key === key && prev.direction === "asc"
-          ? "desc"
-          : "asc"
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc"
     }));
   };
 
   const { uniqueDepts, uniqueMajors, uniqueStatuses } = useMemo(() => {
-    if (!studentData) {
-      return {
-        uniqueDepts: [],
-        uniqueMajors: [],
-        uniqueStatuses: []
-      };
-    }
+    if (!studentData) return { uniqueDepts: [], uniqueMajors: [], uniqueStatuses: [] };
 
     const students = Object.values(studentData);
-
     return {
-      uniqueDepts: [...new Set(students.map(s => s.dept))]
-        .filter(Boolean)
-        .sort(),
-
-      uniqueMajors: [...new Set(students.map(s => s.major1))]
-        .filter(Boolean)
-        .sort(),
-
-      uniqueStatuses: [...new Set(students.map(s => s.status))]
-        .filter(Boolean)
-        .sort()
+      uniqueDepts: [...new Set(students.map(s => s.dept))].filter(Boolean).sort(),
+      uniqueMajors: [...new Set(students.map(s => s.major1))].filter(Boolean).sort(),
+      uniqueStatuses: [...new Set(students.map(s => s.status))].filter(Boolean).sort()
     };
-
   }, [studentData]);
 
-
-  const REVIEW_STATUSES = [
-    "Not Reviewed",
-    "Needs Attention",
-    "Completed"
-  ];
-
-
   const processedData = useMemo(() => {
-
     if (!studentData) return [];
-
     let data = Object.values(studentData);
 
-
-    if (filterDept)
-      data = data.filter(s => s.dept === filterDept);
-
-    if (filterMajor)
-      data = data.filter(s => s.major1 === filterMajor);
-
-    if (filterStatus)
-      data = data.filter(s => s.status === filterStatus);
-
-    if (filterReviewStatus)
-      data = data.filter(s => s.review_status === filterReviewStatus);
-
+    if (filterDept) data = data.filter(s => s.dept === filterDept);
+    if (filterMajor) data = data.filter(s => s.major1 === filterMajor);
+    if (filterStatus) data = data.filter(s => s.status === filterStatus);
+    if (filterReviewStatus) data = data.filter(s => s.review_status === filterReviewStatus);
 
     if (sortConfig.key) {
       data = [...data].sort((a, b) => {
-
-        if (a[sortConfig.key] < b[sortConfig.key])
-          return sortConfig.direction === "asc" ? -1 : 1;
-
-        if (a[sortConfig.key] > b[sortConfig.key])
-          return sortConfig.direction === "asc" ? 1 : -1;
-
+        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === "asc" ? -1 : 1;
+        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === "asc" ? 1 : -1;
         return 0;
       });
     }
-
-
     return data;
-
-  }, [
-    studentData,
-    filterDept,
-    filterMajor,
-    filterStatus,
-    filterReviewStatus,
-    sortConfig
-  ]);
+  }, [studentData, filterDept, filterMajor, filterStatus, filterReviewStatus, sortConfig]);
 
   return (
     <div className="audit-container">
       <h2>Villanova EzCert</h2>
 
       <div className="button-row">
-        <button className="button" onClick={handleSelectFolder}>
-          Select Folder
-        </button>
+        <button className="button" onClick={handleSelectFolder}>Select Folder</button>
         <button
           className={`button primary ${!folderPath ? 'disabled' : ''}`}
           onClick={handleProcessAudits}
@@ -355,11 +297,9 @@ export default function AuditProcessor() {
         </button>
 
         {status === 'success' && studentData && (
-          <div className="export-controls" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button className="button export" onClick={handleExportXLSX}>
-              Export to XLSX
-            </button>
-            <label style={{ fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className="export-controls">
+            <button className="button export" onClick={handleExportXLSX}>Export to XLSX</button>
+            <label className="checkbox-label">
               <input
                 type="checkbox"
                 checked={splitByDept}
@@ -381,8 +321,27 @@ export default function AuditProcessor() {
 
       {status === 'success' && studentData && (
         <div className="table-wrapper">
+          
           <div className="table-header-controls">
-            <h3 className="success-text">Showing {processedData.length} of {Object.keys(studentData).length} programs.</h3>
+            <h3 className="success-text">
+              Showing {processedData.length} of {Object.keys(studentData).length} student records.
+              
+              <div 
+                className="tooltip-container"
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+              >
+                <span className="tooltip-icon">ⓘ</span>
+
+                {showTooltip && (
+                  <div className="tooltip-content">
+                    Click a cell to highlight or return to its original color.<br/>
+                    Right-click any cell in a row to open the student's record.
+                    <div className="tooltip-arrow" />
+                  </div>
+                )}
+              </div>
+            </h3>
 
             <div className="filter-controls">
               <select value={filterReviewStatus} onChange={(e) => setFilterReviewStatus(e.target.value)}>
@@ -411,24 +370,14 @@ export default function AuditProcessor() {
             <table>
               <thead>
                 <tr>
-                  <th onClick={() => requestSort('review_status')} className="sortable-header">
-                    Review Status {sortConfig.key === 'review_status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-                  </th>
-                  <th onClick={() => requestSort('status')} className="sortable-header">
-                    Grad Status {sortConfig.key === 'status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-                  </th>
+                  <th onClick={() => requestSort('review_status')} className="sortable-header">Review Status {sortConfig.key === 'review_status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th onClick={() => requestSort('status')} className="sortable-header">Grad Status {sortConfig.key === 'status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
                   <th>VUID</th>
-                  <th onClick={() => requestSort('last_name')} className="sortable-header">
-                    Last {sortConfig.key === 'last_name' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-                  </th>
+                  <th onClick={() => requestSort('last_name')} className="sortable-header">Last {sortConfig.key === 'last_name' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
                   <th>First</th><th>Class Code</th>
                   <th>Catalog Term</th><th>Exp Grad Date</th><th>Program</th>
-                  <th onClick={() => requestSort('dept')} className="sortable-header">
-                    Dept {sortConfig.key === 'dept' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-                  </th>
-                  <th onClick={() => requestSort('major1')} className="sortable-header">
-                    Major1 {sortConfig.key === 'major1' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-                  </th>
+                  <th onClick={() => requestSort('dept')} className="sortable-header">Dept {sortConfig.key === 'dept' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th onClick={() => requestSort('major1')} className="sortable-header">Major1 {sortConfig.key === 'major1' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
                   <th>Major2</th><th>Major3</th><th>Major4</th>
                   <th>Minor1</th><th>Minor2</th><th>Minor3</th><th>Minor4</th>
                   <th>Conc1</th><th>Conc2</th><th>Conc3</th><th>Conc4</th>
@@ -438,60 +387,62 @@ export default function AuditProcessor() {
                   <th>Core History</th><th>Core Social Science</th><th>Core Fine Arts</th>
                   <th>Core Theology</th><th>Core Language</th><th>Core Diversity</th>
                   <th>1st Major</th><th>Free Electives</th>
-                  <th onClick={() => requestSort('total')} className="sortable-header">
-                    Total {sortConfig.key === 'total' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-                  </th>
+                  <th onClick={() => requestSort('total')} className="sortable-header">Total {sortConfig.key === 'total' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
                   <th>NOTES</th><th>Missing Requirements</th>
                 </tr>
               </thead>
               <tbody>
-                {processedData.map((s, idx) => (
-                  <tr
-                    key={s.unique_id || idx}
-                    onClick={() => handleRowClick(s)}
-                    className="clickable-row"
-                  >
-                    <td style={{
-                      backgroundColor: s.review_status === 'Needs Attention' ? '#FFF9C4' :
-                        s.review_status === 'Completed' ? '#E8F5E9' : 'transparent',
-                    }}>
-                      {s.review_status}
-                    </td>
-                    <td
-                      style={{
-                        fontWeight: 'bold',
-                        color:
-                          s.status === 'OK' ? '#C5EFCD' :
-                            s.status === 'DELETE' ? '#9C0006' :
-                              s.status === 'HOLD' ? '#9C5700' :
-                                '#006100',
+                {processedData.map((s, idx) => {
+                  const rowId = s.unique_id || idx;
 
-                        backgroundColor:
-                          s.status === 'OK' ? '#006000' :
-                            s.status === 'DELETE' ? '#FFC7CE' :
-                              s.status === 'HOLD' ? '#FFEB9C' :
-                                '#C6EFCE'
-                      }}
+                  const cells = [
+                    { val: s.review_status, style: { backgroundColor: s.review_status === 'Needs Attention' ? '#FFF9C4' : s.review_status === 'Completed' ? '#E8F5E9' : 'transparent' } },
+                    { val: s.status, style: { fontWeight: 'bold', color: s.status === 'OK' ? '#C5EFCD' : s.status === 'DELETE' ? '#9C0006' : s.status === 'HOLD' ? '#9C5700' : '#006100', backgroundColor: s.status === 'OK' ? '#006000' : s.status === 'DELETE' ? '#FFC7CE' : s.status === 'HOLD' ? '#FFEB9C' : '#C6EFCE' } },
+                    { val: s.vuid }, { val: s.last_name }, { val: s.first_name },
+                    { val: s.clas }, { val: s.catalog_term }, { val: s.exp_grad_date }, { val: s.program }, { val: s.dept },
+                    { val: s.major1 }, { val: s.major2 }, { val: s.major3 }, { val: s.major4 },
+                    { val: s.minor1 }, { val: s.minor2 }, { val: s.minor3 }, { val: s.minor4 },
+                    { val: s.conc1 }, { val: s.conc2 }, { val: s.conc3 }, { val: s.conc4 },
+                    { val: s.overall_hours },
+                    { val: s.core_humanities }, { val: s.core_philosophy }, { val: s.core_ethics },
+                    { val: s.core_math }, { val: s.core_nat_sci }, { val: s.core_lit },
+                    { val: s.core_history }, { val: s.core_soc_sci }, { val: s.core_fine_arts },
+                    { val: s.core_theology }, { val: s.core_language }, { val: s.core_diversity },
+                    { val: s.first_major }, { val: s.free_electives },
+                    { val: <strong>{s.total}</strong> },
+                    { val: s.notes },
+                    { val: s.missing_requirements, className: "missing-reqs" }
+                  ];
+
+                  return (
+                    <tr
+                      key={rowId}
+                      className="clickable-row"
+                      onContextMenu={(e) => handleContextMenu(e, s)}
                     >
-                      {s.status}
-                    </td>
-                    <td>{s.vuid}</td><td>{s.last_name}</td><td>{s.first_name}</td>
-                    <td>{s.clas}</td><td>{s.catalog_term}</td>
-                    <td>{s.exp_grad_date}</td><td>{s.program}</td><td>{s.dept}</td>
-                    <td>{s.major1}</td><td>{s.major2}</td><td>{s.major3}</td><td>{s.major4}</td>
-                    <td>{s.minor1}</td><td>{s.minor2}</td><td>{s.minor3}</td><td>{s.minor4}</td>
-                    <td>{s.conc1}</td><td>{s.conc2}</td><td>{s.conc3}</td><td>{s.conc4}</td>
-                    <td>{s.overall_hours}</td>
-                    <td>{s.core_humanities}</td><td>{s.core_philosophy}</td><td>{s.core_ethics}</td>
-                    <td>{s.core_math}</td><td>{s.core_nat_sci}</td><td>{s.core_lit}</td>
-                    <td>{s.core_history}</td><td>{s.core_soc_sci}</td><td>{s.core_fine_arts}</td>
-                    <td>{s.core_theology}</td><td>{s.core_language}</td><td>{s.core_diversity}</td>
-                    <td>{s.first_major}</td><td>{s.free_electives}</td>
-                    <td><strong>{s.total}</strong></td>
-                    <td>{s.notes}</td>
-                    <td className="missing-reqs">{s.missing_requirements}</td>
-                  </tr>
-                ))}
+                      {cells.map((col, colIdx) => {
+                        const isHighlighted = highlightedCells[`${s.vuid}-${colIdx}`];
+                        const baseStyle = col.style || {};
+                        const combinedStyle = { ...baseStyle };
+
+                        if (isHighlighted) {
+                          combinedStyle.backgroundColor = '#FFFF00'; 
+                        }
+
+                        return (
+                          <td
+                            key={colIdx}
+                            className={col.className || ""}
+                            style={combinedStyle}
+                            onClick={() => toggleCellHighlight(s.vuid, colIdx)}
+                          >
+                            {col.val}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -515,14 +466,10 @@ export default function AuditProcessor() {
                   <strong>Credits Completed:</strong>
                   <input
                     type="number"
-                    value={editData.overall_hours ?? ""} // <-- Add the fallback here
+                    style={{ marginLeft: '8px', width: '70px' }}
+                    value={editData.overall_hours ?? ""}
                     placeholder={selectedStudent.overall_hours}
-                    onChange={(e) =>
-                      setEditData({
-                        ...editData,
-                        overall_hours: e.target.value
-                      })
-                    }
+                    onChange={(e) => setEditData({ ...editData, overall_hours: e.target.value })}
                   />
                 </p>
                 <p><strong>Total Courses Needed:</strong> {editData.total}</p>
@@ -536,33 +483,34 @@ export default function AuditProcessor() {
                 {selectedStudent.conc1 && <p><strong>Concentrations:</strong> {[selectedStudent.conc1, selectedStudent.conc2, selectedStudent.conc3, selectedStudent.conc4].filter(Boolean).join(", ")}</p>}
               </div>
             </div>
+            
             <div className="modal-section" style={{ gridColumn: "1 / -1" }}>
               <h4>Class History</h4>
-              <div style={{ maxHeight: "250px", overflowY: "auto", border: "1px solid #ddd", borderRadius: "4px" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", textAlign: "left" }}>
+              <div className="class-history-container">
+                <table className="class-history-table">
                   <thead style={{ position: "sticky", top: 0, backgroundColor: "#f4f4f4" }}>
                     <tr>
-                      <th style={{ padding: "8px", borderBottom: "2px solid #ccc" }}>Term</th>
-                      <th style={{ padding: "8px", borderBottom: "2px solid #ccc" }}>Course</th>
-                      <th style={{ padding: "8px", borderBottom: "2px solid #ccc" }}>Title</th>
-                      <th style={{ padding: "8px", borderBottom: "2px solid #ccc" }}>Grade</th>
-                      <th style={{ padding: "8px", borderBottom: "2px solid #ccc", textAlign: "right" }}>Credits</th>
+                      <th>Term</th>
+                      <th>Course</th>
+                      <th>Title</th>
+                      <th>Grade</th>
+                      <th className="text-right">Credits</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedStudentClasses.length > 0 ? (
                       selectedStudentClasses.map((cls, idx) => (
-                        <tr key={idx} style={{ borderBottom: "1px solid #eee" }}>
-                          <td style={{ padding: "8px" }}>{cls.term}</td>
-                          <td style={{ padding: "8px" }}>{cls.discipline} {cls.number}</td>
-                          <td style={{ padding: "8px" }}>{cls.title}</td>
-                          <td style={{ padding: "8px" }}>{cls.grade}</td>
-                          <td style={{ padding: "8px", textAlign: "right" }}>{cls.credits}</td>
+                        <tr key={idx}>
+                          <td>{cls.term}</td>
+                          <td>{cls.discipline} {cls.number}</td>
+                          <td>{cls.title}</td>
+                          <td>{cls.grade}</td>
+                          <td className="text-right">{cls.credits}</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="5" style={{ padding: "15px", textAlign: "center", color: "#666" }}>
+                        <td colSpan="5" className="empty-history">
                           No class history found.
                         </td>
                       </tr>
@@ -574,49 +522,28 @@ export default function AuditProcessor() {
 
             <div className="modal-section">
               <h4>Missing Requirements</h4>
-
               {REQUIREMENTS.map(({ label, field }) => (
-                <div
-                  key={field}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "8px",
-                    alignItems: "center"
-                  }}
-                >
+                <div key={field} className="missing-reqs-item">
                   <label>{label}</label>
-
                   <input
                     type="number"
                     min="0"
                     style={{ width: "70px" }}
-                    value={editData[field] ?? ""} // <-- Add the fallback right here
+                    value={editData[field] ?? ""}
                     placeholder={selectedStudent[field]}
-                    onChange={(e) =>
-                      setEditData(prev => ({
-                        ...prev,
-                        [field]: e.target.value
-                      }))
-                    }
+                    onChange={(e) => setEditData(prev => ({ ...prev, [field]: e.target.value }))}
                   />
                 </div>
               ))}
             </div>
 
             <div className="modal-section edit-section">
-
               <div style={{ display: 'flex', gap: '20px' }}>
                 <div style={{ flex: 1 }}>
                   <h4>Graduation Status</h4>
                   <select
                     value={editData.status || ""}
-                    onChange={(e) =>
-                      setEditData(prev => ({
-                        ...prev,
-                        status: e.target.value
-                      }))
-                    }
+                    onChange={(e) => setEditData(prev => ({ ...prev, status: e.target.value }))}
                     className="status-dropdown"
                   >
                     <option value="OK">OK</option>
@@ -625,17 +552,11 @@ export default function AuditProcessor() {
                     <option value="DELETE">DELETE</option>
                   </select>
                 </div>
-
                 <div style={{ flex: 1 }}>
                   <h4>Review Status</h4>
                   <select
                     value={editData.review_status || ""}
-                    onChange={(e) =>
-                      setEditData(prev => ({
-                        ...prev,
-                        review_status: e.target.value
-                      }))
-                    }
+                    onChange={(e) => setEditData(prev => ({ ...prev, review_status: e.target.value }))}
                     className="status-dropdown"
                   >
                     <option value="Not Reviewed">Not Reviewed</option>
@@ -648,12 +569,7 @@ export default function AuditProcessor() {
               <h4>Reviewer Notes</h4>
               <textarea
                 value={editData.notes || ""}
-                onChange={(e) =>
-                  setEditData(prev => ({
-                    ...prev,
-                    notes: e.target.value
-                  }))
-                }
+                onChange={(e) => setEditData(prev => ({ ...prev, notes: e.target.value }))}
                 rows={4}
                 className="notes-textarea"
                 placeholder="Add review notes here..."
@@ -667,22 +583,27 @@ export default function AuditProcessor() {
           </div>
         </div>
       )}
-      <div
-        style={{
-          marginTop: "40px",
-          paddingTop: "20px",
-          borderTop: "1px solid #ddd",
-          textAlign: "center"
-        }}
-      >
-        <button
-          className="button"
-          style={{
-            backgroundColor: "#d32f2f",
-            color: "white"
-          }}
-          onClick={handleClearDatabase}
+
+      {contextMenu && (
+        <div
+          className="context-menu"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={(e) => e.stopPropagation()} 
         >
+          <div
+            className="context-menu-item"
+            onClick={() => {
+              handleRowClick(contextMenu.student);
+              setContextMenu(null);
+            }}
+          >
+            Open Record
+          </div>
+        </div>
+      )}
+
+      <div className="clear-database-container">
+        <button className="button danger" onClick={handleClearDatabase}>
           Clear Database
         </button>
       </div>
