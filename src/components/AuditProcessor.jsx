@@ -370,10 +370,14 @@ export default function AuditProcessor() {
             <table>
               <thead>
                 <tr>
-                  <th onClick={() => requestSort('review_status')} className="sortable-header">Review Status {sortConfig.key === 'review_status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                  <th onClick={() => requestSort('status')} className="sortable-header">Grad Status {sortConfig.key === 'status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                  <th>VUID</th>
-                  <th onClick={() => requestSort('last_name')} className="sortable-header">Last {sortConfig.key === 'last_name' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  {/* --- UPDATED STICKY HEADERS --- */}
+                  <th className="sticky-col-header" style={{ left: 0, minWidth: '40px', maxWidth: '40px' }}>#</th>
+                  <th onClick={() => requestSort('review_status')} className="sortable-header sticky-col-header" style={{ left: '40px', minWidth: '125px', maxWidth: '125px' }}>Review Status {sortConfig.key === 'review_status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th onClick={() => requestSort('status')} className="sortable-header sticky-col-header" style={{ left: '165px', minWidth: '100px', maxWidth: '100px' }}>Grad Status {sortConfig.key === 'status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th className="sticky-col-header" style={{ left: '265px', minWidth: '85px', maxWidth: '85px' }}>VUID</th>
+                  <th onClick={() => requestSort('last_name')} className="sortable-header sticky-col-header" style={{ left: '350px', minWidth: '120px', maxWidth: '120px', borderRight: '2px solid #bbb' }}>Last {sortConfig.key === 'last_name' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  
+                  {/* --- REGULAR HEADERS --- */}
                   <th>First</th><th>Class Code</th>
                   <th>Catalog Term</th><th>Exp Grad Date</th><th>Program</th>
                   <th onClick={() => requestSort('dept')} className="sortable-header">Dept {sortConfig.key === 'dept' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
@@ -396,7 +400,7 @@ export default function AuditProcessor() {
                   const rowId = s.unique_id || idx;
 
                   const cells = [
-                    { val: s.review_status, style: { backgroundColor: s.review_status === 'Needs Attention' ? '#FFF9C4' : s.review_status === 'Completed' ? '#E8F5E9' : 'transparent' } },
+                    { val: s.review_status, style: { backgroundColor: s.review_status === 'Needs Attention' ? '#FFF9C4' : s.review_status === 'Completed' ? '#E8F5E9' : '' } },
                     { val: s.status, style: { fontWeight: 'bold', color: s.status === 'OK' ? '#C5EFCD' : s.status === 'DELETE' ? '#9C0006' : s.status === 'HOLD' ? '#9C5700' : '#006100', backgroundColor: s.status === 'OK' ? '#006000' : s.status === 'DELETE' ? '#FFC7CE' : s.status === 'HOLD' ? '#FFEB9C' : '#C6EFCE' } },
                     { val: s.vuid }, { val: s.last_name }, { val: s.first_name },
                     { val: s.clas }, { val: s.catalog_term }, { val: s.exp_grad_date }, { val: s.program }, { val: s.dept },
@@ -420,11 +424,41 @@ export default function AuditProcessor() {
                       className="clickable-row"
                       onContextMenu={(e) => handleContextMenu(e, s)}
                     >
+                      {/* --- STICKY ROW NUMBER CELL --- */}
+                      <td 
+                        className="sticky-col default-sticky-bg" 
+                        style={{ left: 0, minWidth: '40px', maxWidth: '40px', textAlign: 'center', fontWeight: 'bold', color: '#888' }}
+                      >
+                        {idx + 1}
+                      </td>
+
                       {cells.map((col, colIdx) => {
                         const isHighlighted = highlightedCells[`${s.vuid}-${colIdx}`];
-                        const baseStyle = col.style || {};
-                        const combinedStyle = { ...baseStyle };
+                        const isSticky = colIdx < 4; // First 4 cells from array (Review, Status, VUID, Last)
+                        
+                        let combinedClass = col.className || "";
+                        const combinedStyle = { ...(col.style || {}) };
 
+                        // Apply mapping for sticky styling and width constraints
+                        if (isSticky) {
+                          combinedClass += " sticky-col";
+                          
+                          // --- UPDATED STICKY CELL WIDTHS ---
+                          const stickyConfigs = [
+                            { left: '40px', minWidth: '125px', maxWidth: '125px' }, // Review
+                            { left: '165px', minWidth: '100px', maxWidth: '100px' }, // Status
+                            { left: '265px', minWidth: '85px', maxWidth: '85px' }, // VUID
+                            { left: '350px', minWidth: '120px', maxWidth: '120px', borderRight: '2px solid #bbb' } // Last
+                          ];
+                          Object.assign(combinedStyle, stickyConfigs[colIdx]);
+
+                          // If it doesn't have an explicit color (like "Completed" or "OK"), give it the solid white default
+                          if (!combinedStyle.backgroundColor) {
+                            combinedClass += " default-sticky-bg";
+                          }
+                        }
+
+                        // Override with highlight color if clicked
                         if (isHighlighted) {
                           combinedStyle.backgroundColor = '#FFFF00'; 
                         }
@@ -432,7 +466,7 @@ export default function AuditProcessor() {
                         return (
                           <td
                             key={colIdx}
-                            className={col.className || ""}
+                            className={combinedClass.trim()}
                             style={combinedStyle}
                             onClick={() => toggleCellHighlight(s.vuid, colIdx)}
                           >
