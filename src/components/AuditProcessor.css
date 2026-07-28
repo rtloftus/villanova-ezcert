@@ -193,35 +193,44 @@ th {
 
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 24px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.5);
   z-index: 1000;
 }
 
 .modal-content {
   background: white;
-  width: 600px;
-  max-width: 90vw;
-  max-height: 90vh;
+
+  width: min(1100px, 92vw);
+  max-height: 85vh;
+
   overflow-y: auto;
+
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+
 }
 
 .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 12px;
-  margin-bottom: 16px;
+    position: sticky;
+    top: -24px;
+    background: white;
+    z-index: 1;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 24px 0 12px;
+    margin-top: -24px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #ddd;
 }
 
 .modal-header h3 {

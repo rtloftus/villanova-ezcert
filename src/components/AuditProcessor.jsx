@@ -1,11 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import './AuditProcessor.css';
+import { createPortal } from "react-dom";
 import * as XLSX from 'xlsx-js-style';
 import {
   REQUIREMENTS,
   NUMERIC_FIELDS,
   REVIEW_STATUSES
 } from "../reactconstants";
+import StudentModal from './StudentModal';
+
 
 export default function AuditProcessor() {
   const [folderPath, setFolderPath] = useState(null);
@@ -30,18 +33,6 @@ export default function AuditProcessor() {
 
   // Multi-Cell Highlight & Context Menu State
   const [highlightedCells, setHighlightedCells] = useState({});
-  const [contextMenu, setContextMenu] = useState(null);
-
-  useEffect(() => {
-    const closeMenu = () => setContextMenu(null);
-    window.addEventListener('click', closeMenu);
-    return () => window.removeEventListener('click', closeMenu);
-  }, []);
-
-  const handleContextMenu = (e, student) => {
-    e.preventDefault();
-    setContextMenu({ x: e.pageX, y: e.pageY, student });
-  };
 
   const toggleCellHighlight = (vuid, colIndex) => {
     setHighlightedCells(prev => {
@@ -52,6 +43,14 @@ export default function AuditProcessor() {
       return newSet;
     });
   };
+
+  useEffect(() => {
+    document.body.style.overflow = selectedStudent ? "hidden" : "";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selectedStudent]);
 
   useEffect(() => {
     async function loadStudents() {
@@ -120,7 +119,7 @@ export default function AuditProcessor() {
 
       let statusColIndex = -1;
       let reviewColIndex = -1;
-      
+
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const headerCell = worksheet[XLSX.utils.encode_cell({ c: C, r: 0 })];
         if (headerCell && headerCell.v === 'Grad Status') statusColIndex = C;
@@ -128,12 +127,12 @@ export default function AuditProcessor() {
       }
 
       for (let R = 1; R <= range.e.r; ++R) {
-        const rowVUID = sourceData[R - 1].VUID; 
+        const rowVUID = sourceData[R - 1].VUID;
 
         for (let C = range.s.c; C <= range.e.c; ++C) {
           const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
           let cell = worksheet[cellAddress];
-          
+
           let bgColor = null;
           let textColor = null;
           let isBold = false;
@@ -150,7 +149,7 @@ export default function AuditProcessor() {
           }
 
           if (highlightedCells[`${rowVUID}-${C}`]) {
-            bgColor = 'FFFF00'; 
+            bgColor = 'FFFF00';
           }
 
           if (bgColor || textColor || isBold) {
@@ -161,8 +160,8 @@ export default function AuditProcessor() {
             cell.s = cell.s || {};
             if (bgColor) cell.s.fill = { patternType: 'solid', fgColor: { rgb: bgColor } };
             if (textColor || isBold) {
-              cell.s.font = { 
-                ...(cell.s.font || {}), 
+              cell.s.font = {
+                ...(cell.s.font || {}),
                 ...(textColor ? { color: { rgb: textColor } } : {}),
                 ...(isBold ? { bold: true } : {})
               };
@@ -321,12 +320,12 @@ export default function AuditProcessor() {
 
       {status === 'success' && studentData && (
         <div className="table-wrapper">
-          
+
           <div className="table-header-controls">
             <h3 className="success-text">
               Showing {processedData.length} of {Object.keys(studentData).length} student records.
-              
-              <div 
+
+              <div
                 className="tooltip-container"
                 onMouseEnter={() => setShowTooltip(true)}
                 onMouseLeave={() => setShowTooltip(false)}
@@ -335,8 +334,8 @@ export default function AuditProcessor() {
 
                 {showTooltip && (
                   <div className="tooltip-content">
-                    Click a cell to highlight or return to its original color.<br/>
-                    Right-click any cell in a row to open the student's record.
+                    Left-click a row to open the student's record.<br />
+                    Right-click a cell to highlight or return to its original color.
                     <div className="tooltip-arrow" />
                   </div>
                 )}
@@ -376,7 +375,7 @@ export default function AuditProcessor() {
                   <th onClick={() => requestSort('status')} className="sortable-header sticky-col-header" style={{ left: '165px', minWidth: '100px', maxWidth: '100px' }}>Grad Status {sortConfig.key === 'status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
                   <th className="sticky-col-header" style={{ left: '265px', minWidth: '85px', maxWidth: '85px' }}>VUID</th>
                   <th onClick={() => requestSort('last_name')} className="sortable-header sticky-col-header" style={{ left: '350px', minWidth: '120px', maxWidth: '120px', borderRight: '2px solid #bbb' }}>Last {sortConfig.key === 'last_name' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                  
+
                   {/* --- REGULAR HEADERS --- */}
                   <th>First</th><th>Class Code</th>
                   <th>Catalog Term</th><th>Exp Grad Date</th><th>Program</th>
@@ -422,11 +421,11 @@ export default function AuditProcessor() {
                     <tr
                       key={rowId}
                       className="clickable-row"
-                      onContextMenu={(e) => handleContextMenu(e, s)}
+                      onClick={() => handleRowClick(s)}
                     >
                       {/* --- STICKY ROW NUMBER CELL --- */}
-                      <td 
-                        className="sticky-col default-sticky-bg" 
+                      <td
+                        className="sticky-col default-sticky-bg"
                         style={{ left: 0, minWidth: '40px', maxWidth: '40px', textAlign: 'center', fontWeight: 'bold', color: '#888' }}
                       >
                         {idx + 1}
@@ -435,14 +434,14 @@ export default function AuditProcessor() {
                       {cells.map((col, colIdx) => {
                         const isHighlighted = highlightedCells[`${s.vuid}-${colIdx}`];
                         const isSticky = colIdx < 4; // First 4 cells from array (Review, Status, VUID, Last)
-                        
+
                         let combinedClass = col.className || "";
                         const combinedStyle = { ...(col.style || {}) };
 
                         // Apply mapping for sticky styling and width constraints
                         if (isSticky) {
                           combinedClass += " sticky-col";
-                          
+
                           // --- UPDATED STICKY CELL WIDTHS ---
                           const stickyConfigs = [
                             { left: '40px', minWidth: '125px', maxWidth: '125px' }, // Review
@@ -460,7 +459,7 @@ export default function AuditProcessor() {
 
                         // Override with highlight color if clicked
                         if (isHighlighted) {
-                          combinedStyle.backgroundColor = '#FFFF00'; 
+                          combinedStyle.backgroundColor = '#FFFF00';
                         }
 
                         return (
@@ -468,7 +467,10 @@ export default function AuditProcessor() {
                             key={colIdx}
                             className={combinedClass.trim()}
                             style={combinedStyle}
-                            onClick={() => toggleCellHighlight(s.vuid, colIdx)}
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              toggleCellHighlight(s.vuid, colIdx);
+                            }}
                           >
                             {col.val}
                           </td>
@@ -484,156 +486,14 @@ export default function AuditProcessor() {
       )}
 
       {selectedStudent && (
-        <div className="modal-overlay" onClick={() => setSelectedStudent(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{selectedStudent.first_name} {selectedStudent.last_name} ({selectedStudent.vuid})</h3>
-              <button className="close-button" onClick={() => setSelectedStudent(null)}>X</button>
-            </div>
-
-            <div className="modal-grid">
-              <div className="modal-section">
-                <h4>Student Information</h4>
-                <p><strong>Class:</strong> {selectedStudent.clas}</p>
-                <p><strong>Exp Grad Date:</strong> {selectedStudent.exp_grad_date}</p>
-                <p>
-                  <strong>Credits Completed:</strong>
-                  <input
-                    type="number"
-                    style={{ marginLeft: '8px', width: '70px' }}
-                    value={editData.overall_hours ?? ""}
-                    placeholder={selectedStudent.overall_hours}
-                    onChange={(e) => setEditData({ ...editData, overall_hours: e.target.value })}
-                  />
-                </p>
-                <p><strong>Total Courses Needed:</strong> {editData.total}</p>
-              </div>
-
-              <div className="modal-section">
-                <h4>Degree Program(s)</h4>
-                <p><strong>Program Code:</strong> {selectedStudent.program}</p>
-                {selectedStudent.major1 && <p><strong>Majors:</strong> {[selectedStudent.major1, selectedStudent.major2, selectedStudent.major3, selectedStudent.major4].filter(Boolean).join(", ")}</p>}
-                {selectedStudent.minor1 && <p><strong>Minors:</strong> {[selectedStudent.minor1, selectedStudent.minor2, selectedStudent.minor3, selectedStudent.minor4].filter(Boolean).join(", ")}</p>}
-                {selectedStudent.conc1 && <p><strong>Concentrations:</strong> {[selectedStudent.conc1, selectedStudent.conc2, selectedStudent.conc3, selectedStudent.conc4].filter(Boolean).join(", ")}</p>}
-              </div>
-            </div>
-            
-            <div className="modal-section" style={{ gridColumn: "1 / -1" }}>
-              <h4>Class History</h4>
-              <div className="class-history-container">
-                <table className="class-history-table">
-                  <thead style={{ position: "sticky", top: 0, backgroundColor: "#f4f4f4" }}>
-                    <tr>
-                      <th>Term</th>
-                      <th>Course</th>
-                      <th>Title</th>
-                      <th>Grade</th>
-                      <th className="text-right">Credits</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedStudentClasses.length > 0 ? (
-                      selectedStudentClasses.map((cls, idx) => (
-                        <tr key={idx}>
-                          <td>{cls.term}</td>
-                          <td>{cls.discipline} {cls.number}</td>
-                          <td>{cls.title}</td>
-                          <td>{cls.grade}</td>
-                          <td className="text-right">{cls.credits}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="5" className="empty-history">
-                          No class history found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="modal-section">
-              <h4>Missing Requirements</h4>
-              {REQUIREMENTS.map(({ label, field }) => (
-                <div key={field} className="missing-reqs-item">
-                  <label>{label}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    style={{ width: "70px" }}
-                    value={editData[field] ?? ""}
-                    placeholder={selectedStudent[field]}
-                    onChange={(e) => setEditData(prev => ({ ...prev, [field]: e.target.value }))}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="modal-section edit-section">
-              <div style={{ display: 'flex', gap: '20px' }}>
-                <div style={{ flex: 1 }}>
-                  <h4>Graduation Status</h4>
-                  <select
-                    value={editData.status || ""}
-                    onChange={(e) => setEditData(prev => ({ ...prev, status: e.target.value }))}
-                    className="status-dropdown"
-                  >
-                    <option value="OK">OK</option>
-                    <option value="ON TRACK">ON TRACK</option>
-                    <option value="HOLD">HOLD</option>
-                    <option value="DELETE">DELETE</option>
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <h4>Review Status</h4>
-                  <select
-                    value={editData.review_status || ""}
-                    onChange={(e) => setEditData(prev => ({ ...prev, review_status: e.target.value }))}
-                    className="status-dropdown"
-                  >
-                    <option value="Not Reviewed">Not Reviewed</option>
-                    <option value="Needs Attention">Needs Attention</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                </div>
-              </div>
-
-              <h4>Reviewer Notes</h4>
-              <textarea
-                value={editData.notes || ""}
-                onChange={(e) => setEditData(prev => ({ ...prev, notes: e.target.value }))}
-                rows={4}
-                className="notes-textarea"
-                placeholder="Add review notes here..."
-              />
-            </div>
-
-            <div className="modal-footer">
-              <button className="button" onClick={() => setSelectedStudent(null)}>Cancel</button>
-              <button className="button primary" onClick={handleSaveDetails}>Save Changes</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {contextMenu && (
-        <div
-          className="context-menu"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-          onClick={(e) => e.stopPropagation()} 
-        >
-          <div
-            className="context-menu-item"
-            onClick={() => {
-              handleRowClick(contextMenu.student);
-              setContextMenu(null);
-            }}
-          >
-            Open Record
-          </div>
-        </div>
+        <StudentModal
+          student={selectedStudent}
+          editData={editData}
+          setEditData={setEditData}
+          classes={selectedStudentClasses}
+          onClose={() => setSelectedStudent(null)}
+          onSave={handleSaveDetails}
+        />
       )}
 
       <div className="clear-database-container">
