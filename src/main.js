@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { processDirectory } = require('./parser');
 const { getStudentClasses } = require('./database'); // Adjust path if needed
+const fs = require('fs');
 
 const {
     saveStudents,
@@ -77,6 +78,65 @@ ipcMain.handle("clear-database", async () => {
 // Add this alongside your other ipcMain handlers
 ipcMain.handle('get-student-classes', async (event, unique_id) => {
     return getStudentClasses(unique_id);
+});
+
+ipcMain.handle('read-audit-file', async (event, filename) => {
+    try {
+        const auditDir = path.join(app.getPath("userData"), "audits");
+        const filePath = path.join(auditDir, filename);
+        
+        if (fs.existsSync(filePath)) {
+            const rawData = fs.readFileSync(filePath, 'utf-8');
+            return { success: true, data: JSON.parse(rawData) };
+        } else {
+            return { success: false, error: "File not found" };
+        }
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+// Add this below your existing ipcMain.handle for 'read-audit-file'
+ipcMain.on('open-json-viewer', (event, jsonData, filename) => {
+    // Create a new window
+    const viewerWin = new BrowserWindow({
+        width: 800,
+        height: 600,
+        title: `Audit Data - ${filename}`,
+        autoHideMenuBar: true,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+        }
+    });
+
+    // Create a simple, styled HTML page to display the JSON
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>${filename}</title>
+            <style>
+                body { 
+                    font-family: Consolas, monospace; 
+                    background: #1e1e1e; 
+                    color: #dcdcdc; 
+                    padding: 20px; 
+                    margin: 0;
+                }
+                h2 { color: #569cd6; border-bottom: 1px solid #333; padding-bottom: 10px; }
+                pre { white-space: pre-wrap; word-wrap: break-word; }
+            </style>
+        </head>
+        <body>
+            <h2>📄 ${filename}</h2>
+            <pre>${JSON.stringify(jsonData, null, 2)}</pre>
+        </body>
+        </html>
+    `;
+
+    // Load the HTML string directly into the window
+    viewerWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
 });
 
 ipcMain.handle(

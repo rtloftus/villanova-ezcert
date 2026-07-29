@@ -36,7 +36,14 @@ function cleanString(str) {
 
 async function processDirectory(directory) {
     const students = {};
-    const masterCourseCatalog = {}; // <-- NEW: Hold all unique courses
+    const masterCourseCatalog = {};
+    const { app } = require("electron");
+
+    const auditDir = path.join(app.getPath("userData"), "audits");
+console.log("AUDIT FILES ARE SAVED HERE:", auditDir); // <-- Add this!
+    if (!fs.existsSync(auditDir)) {
+        fs.mkdirSync(auditDir, { recursive: true });
+    }
 
     const files = fs.readdirSync(directory).filter(file => file.toLowerCase().endsWith(".xml"));
 
@@ -52,14 +59,22 @@ async function processDirectory(directory) {
             for (const audit of audits) {
                 const studentData = parseAuditXML(audit);
                 if (studentData.vuid) {
+                    const auditFile = `${studentData.unique_id}.json`;
+
+                    fs.writeFileSync(
+                        path.join(auditDir, auditFile),
+                        JSON.stringify(audit, null, 2)
+                    );
+
+                    studentData.audit_file = auditFile;
+                }
+                if (studentData.vuid) {
                     students[studentData.unique_id] = studentData;
-                    
-                    // --- NEW: Merge harvested courses into the master catalog ---
+
+                    //harvest courses
                     if (studentData.harvested_courses) {
                         for (const [key, courseObj] of Object.entries(studentData.harvested_courses)) {
-                            // If we already have it, we could merge attributes here, 
-                            // but simply overwriting with the latest is usually fine for DegreeWorks
-                            masterCourseCatalog[key] = courseObj; 
+                            masterCourseCatalog[key] = courseObj;
                         }
                     }
                 }
@@ -68,7 +83,7 @@ async function processDirectory(directory) {
             console.error(`Failed - ${file}:`, e);
         }
     }
-    
+
     // --- NEW: Save the master catalog to courses.db ---
     const { saveCourses } = require("./database"); // Ensure you require this at the top of your file
     saveCourses(Object.values(masterCourseCatalog));
@@ -128,7 +143,7 @@ function parseAuditXML(auditObj) {
     let isStudyAbroad = false;
     let isAffiliate = false;
     let upcomingFallCredits = 0;
-    
+
     const classList = []; // <-- NEW: Array to hold class objects
 
     clsInfo.forEach(c => {
@@ -180,7 +195,7 @@ function parseAuditXML(auditObj) {
             const courseKey = `${disc}-${num}`;
             // We attach this to the parser output so the orchestrator can collect them
             if (!auditObj.masterCourses) auditObj.masterCourses = {};
-            
+
             harvestedCourses[courseKey] = {
                 discipline: disc,
                 number: num,
@@ -227,13 +242,13 @@ function parseAuditXML(auditObj) {
     }
 
     for (const req of REQUIREMENTS) {
-    if (req.special || req.block !== "Core Curriculum") continue;
+        if (req.special || req.block !== "Core Curriculum") continue;
 
-    requirementCounts[req.field] =
-        coreBlock && isBlockIncomplete(coreBlock)
-            ? countMissingRules(coreBlock.Rule, req.rules)
-            : 0;
-}
+        requirementCounts[req.field] =
+            coreBlock && isBlockIncomplete(coreBlock)
+                ? countMissingRules(coreBlock.Rule, req.rules)
+                : 0;
+    }
 
     requirementCounts.core_language =
         langBlock && isBlockIncomplete(langBlock)
@@ -379,7 +394,8 @@ function parseAuditXML(auditObj) {
         notes,
         missing_requirements: missingArr.join(", "),
         classes: classList,
-        harvested_courses: harvestedCourses
+        harvested_courses: harvestedCourses,
+        audit_file: null
     };
 }
 

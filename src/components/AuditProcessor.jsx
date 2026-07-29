@@ -109,7 +109,7 @@ export default function AuditProcessor() {
       "Core Fine Arts": s.core_fine_arts, "Core Theology": s.core_theology,
       "Core Language": s.core_language, "Core Diversity": s.core_diversity,
       "1st Major": s.first_major, "Free Electives": s.free_electives, "Total": s.total,
-      "NOTES": s.notes, "Missing Requirements": s.missing_requirements
+      "NOTES": s.notes, "Missing Requirements": s.missing_requirements, "Audit File": s.audit_file
     }));
 
     const workbook = XLSX.utils.book_new();
@@ -262,6 +262,17 @@ export default function AuditProcessor() {
     };
   }, [studentData]);
 
+  const handleViewAudit = async (filename) => {
+    const result = await window.electronAPI.readAuditFile(filename);
+    
+    if (result.success) {
+      // Send the JSON data and filename to the Main Process to open in a new window!
+      window.electronAPI.openJsonViewer(result.data, filename);
+    } else {
+      alert("Could not load audit file: " + result.error);
+    }
+  };
+
   const processedData = useMemo(() => {
     if (!studentData) return [];
     let data = Object.values(studentData);
@@ -369,14 +380,12 @@ export default function AuditProcessor() {
             <table>
               <thead>
                 <tr>
-                  {/* --- UPDATED STICKY HEADERS --- */}
                   <th className="sticky-col-header" style={{ left: 0, minWidth: '40px', maxWidth: '40px' }}>#</th>
                   <th onClick={() => requestSort('review_status')} className="sortable-header sticky-col-header" style={{ left: '40px', minWidth: '125px', maxWidth: '125px' }}>Review Status {sortConfig.key === 'review_status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
                   <th onClick={() => requestSort('status')} className="sortable-header sticky-col-header" style={{ left: '165px', minWidth: '100px', maxWidth: '100px' }}>Grad Status {sortConfig.key === 'status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
                   <th className="sticky-col-header" style={{ left: '265px', minWidth: '85px', maxWidth: '85px' }}>VUID</th>
                   <th onClick={() => requestSort('last_name')} className="sortable-header sticky-col-header" style={{ left: '350px', minWidth: '120px', maxWidth: '120px', borderRight: '2px solid #bbb' }}>Last {sortConfig.key === 'last_name' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
 
-                  {/* --- REGULAR HEADERS --- */}
                   <th>First</th><th>Class Code</th>
                   <th>Catalog Term</th><th>Exp Grad Date</th><th>Program</th>
                   <th onClick={() => requestSort('dept')} className="sortable-header">Dept {sortConfig.key === 'dept' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
@@ -391,7 +400,7 @@ export default function AuditProcessor() {
                   <th>Core Theology</th><th>Core Language</th><th>Core Diversity</th>
                   <th>1st Major</th><th>Free Electives</th>
                   <th onClick={() => requestSort('total')} className="sortable-header">Total {sortConfig.key === 'total' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                  <th>NOTES</th><th>Missing Requirements</th>
+                  <th>NOTES</th><th>Missing Requirements</th><th>Audit File</th>
                 </tr>
               </thead>
               <tbody>
@@ -414,7 +423,17 @@ export default function AuditProcessor() {
                     { val: s.first_major }, { val: s.free_electives },
                     { val: <strong>{s.total}</strong> },
                     { val: s.notes },
-                    { val: s.missing_requirements, className: "missing-reqs" }
+                    { val: s.missing_requirements, className: "missing-reqs" },
+                    {
+                      val: s.audit_file ? (
+                        <button className="button" onClick={(e) => {
+                          e.stopPropagation(); // Prevents the row click from opening the modal at the same time
+                          handleViewAudit(s.audit_file);
+                        }}>
+                          View JSON
+                        </button>
+                      ) : "No File"
+                    }
                   ];
 
                   return (
@@ -423,7 +442,7 @@ export default function AuditProcessor() {
                       className="clickable-row"
                       onClick={() => handleRowClick(s)}
                     >
-                      {/* --- STICKY ROW NUMBER CELL --- */}
+
                       <td
                         className="sticky-col default-sticky-bg"
                         style={{ left: 0, minWidth: '40px', maxWidth: '40px', textAlign: 'center', fontWeight: 'bold', color: '#888' }}
@@ -438,11 +457,11 @@ export default function AuditProcessor() {
                         let combinedClass = col.className || "";
                         const combinedStyle = { ...(col.style || {}) };
 
-                        // Apply mapping for sticky styling and width constraints
+
                         if (isSticky) {
                           combinedClass += " sticky-col";
 
-                          // --- UPDATED STICKY CELL WIDTHS ---
+
                           const stickyConfigs = [
                             { left: '40px', minWidth: '125px', maxWidth: '125px' }, // Review
                             { left: '165px', minWidth: '100px', maxWidth: '100px' }, // Status

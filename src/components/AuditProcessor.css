@@ -414,19 +414,18 @@ th {
   position: sticky;
   top: 0;
   background-color: #f4f4f4;
-  z-index: 4 !important; /* Top priority: Above rows AND scrolled columns */
+  z-index: 4 !important; 
 }
 
 .sticky-col {
   position: sticky;
-  z-index: 2; /* Above scrolling cells */
+  z-index: 2;
 }
 
 .default-sticky-bg {
   background-color: #ffffff;
 }
 
-/* Ensure sticky columns match the hover color if they don't have a specific status color */
 .clickable-row:hover .default-sticky-bg {
   background-color: #f0f4f8;
 }

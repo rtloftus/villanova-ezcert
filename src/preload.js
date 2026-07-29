@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStudents: () => ipcRenderer.invoke('database:getStudents'),
     updateStudent: (student) => ipcRenderer.invoke('database:updateStudent', student),
     clearDatabase: () => ipcRenderer.invoke("clear-database"),
-    getStudentClasses: (unique_id) => ipcRenderer.invoke('get-student-classes', unique_id)
+    getStudentClasses: (unique_id) => ipcRenderer.invoke('get-student-classes', unique_id),
+    readAuditFile: (filename) => ipcRenderer.invoke('read-audit-file', filename),
+    openJsonViewer: (jsonData, filename) => ipcRenderer.send('open-json-viewer', jsonData, filename),
 });
 

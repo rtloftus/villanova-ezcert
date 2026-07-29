@@ -1,14 +1,14 @@
 const Database = require("better-sqlite3");
 const path = require("path");
 const { app } = require("electron");
+const fs = require("fs");
 
-// --- 1. STUDENTS DATABASE SETUP ---
 const dbPath = path.join(app.getPath("userData"), "students.db");
 console.log("Database location:", dbPath);
 
 const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON"); // Ensure foreign keys are enabled for ON DELETE CASCADE
+db.pragma("foreign_keys = ON"); // foreign keys enabled for ON DELETE CASCADE
 
 // Create the main students table
 db.exec(`
@@ -54,11 +54,12 @@ CREATE TABLE IF NOT EXISTS students (
     review_status TEXT,
     notes TEXT,
     missing_requirements TEXT,
+    audit_file TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 `);
 
-// Create the relational table for tracking individual classes
+// Create table for tracking classes
 db.exec(`
 CREATE TABLE IF NOT EXISTS student_classes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,8 +75,6 @@ CREATE TABLE IF NOT EXISTS student_classes (
 `);
 
 
-// --- 2. COURSES DATABASE SETUP ---
-
 db.exec(`
 CREATE TABLE IF NOT EXISTS courses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,8 +87,6 @@ CREATE TABLE IF NOT EXISTS courses (
 );
 `);
 
-
-// --- 3. PREPARED STATEMENTS ---
 const insertStudent = db.prepare(`
 INSERT INTO students (
     unique_id, vuid, last_name, first_name, clas, catalog_term, exp_grad_date,
@@ -97,7 +94,7 @@ INSERT INTO students (
     conc1, conc2, conc3, conc4, overall_hours, core_humanities, core_philosophy,
     core_ethics, core_math, core_nat_sci, core_lit, core_history, core_soc_sci,
     core_fine_arts, core_theology, core_language, core_diversity, first_major,
-    free_electives, total, status, review_status, notes, missing_requirements
+    free_electives, total, status, review_status, notes, missing_requirements, audit_file
 )
 VALUES (
     @unique_id, @vuid, @last_name, @first_name, @clas, @catalog_term, @exp_grad_date,
@@ -105,7 +102,7 @@ VALUES (
     @conc1, @conc2, @conc3, @conc4, @overall_hours, @core_humanities, @core_philosophy,
     @core_ethics, @core_math, @core_nat_sci, @core_lit, @core_history, @core_soc_sci,
     @core_fine_arts, @core_theology, @core_language, @core_diversity, @first_major,
-    @free_electives, @total, @status, @review_status, @notes, @missing_requirements
+    @free_electives, @total, @status, @review_status, @notes, @missing_requirements, @audit_file
 )
 ON CONFLICT(unique_id)
 DO UPDATE SET
@@ -132,6 +129,7 @@ DO UPDATE SET
     review_status=excluded.review_status,
     notes=excluded.notes,
     missing_requirements=excluded.missing_requirements,
+    audit_file=excluded.audit_file,
     updated_at=CURRENT_TIMESTAMP;
 `);
 
@@ -152,8 +150,6 @@ const insertCourse = db.prepare(`
         attributes=excluded.attributes;
 `);
 
-
-// --- 4. DATABASE FUNCTIONS ---
 
 function saveStudents(students) {
     const insertMany = db.transaction((list) => {
@@ -256,6 +252,7 @@ function updateStudent(student) {
             free_electives = ?,
             total = ?,
             missing_requirements = ?
+            audit_file = ?
         WHERE unique_id = ?
     `);
 
@@ -280,17 +277,34 @@ function updateStudent(student) {
         student.free_electives,
         student.total,
         student.missing_requirements,
+        student.audit_file,
         student.unique_id
     );
 }
 
 function clearDatabase() {
-    // Clear relational data first, then main table
+    // clear relational data and main table
     db.exec("DELETE FROM student_classes"); 
     db.exec("DELETE FROM students");
     
-    // Clear courses catalog
+    // clear courses catalog
     db.exec("DELETE FROM courses");
+    
+    // clear the physical audit files
+    try {
+        const auditDir = path.join(app.getPath("userData"), "audits");
+        
+       
+        if (fs.existsSync(auditDir)) {
+            fs.rmSync(auditDir, { recursive: true, force: true });
+        }
+        
+    
+        fs.mkdirSync(auditDir, { recursive: true });
+        
+    } catch (err) {
+        console.error("Error clearing audit files:", err);
+    }
     
     return { success: true };
 }
