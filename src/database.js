@@ -75,13 +75,8 @@ CREATE TABLE IF NOT EXISTS student_classes (
 
 
 // --- 2. COURSES DATABASE SETUP ---
-const coursesDbPath = path.join(app.getPath("userData"), "courses.db");
-console.log("Courses database location:", coursesDbPath);
 
-const coursesDb = new Database(coursesDbPath); 
-coursesDb.pragma("journal_mode = WAL");
-
-coursesDb.exec(`
+db.exec(`
 CREATE TABLE IF NOT EXISTS courses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     discipline TEXT,
@@ -147,7 +142,7 @@ const insertClass = db.prepare(`
 
 const deleteClasses = db.prepare(`DELETE FROM student_classes WHERE student_id = ?`);
 
-const insertCourse = coursesDb.prepare(`
+const insertCourse = db.prepare(`
     INSERT INTO courses (discipline, number, title, credits, attributes)
     VALUES (@discipline, @number, @title, @credits, @attributes)
     ON CONFLICT(discipline, number) 
@@ -207,7 +202,7 @@ function getStudentClasses(student_id) {
 function saveCourses(courseList) {
     console.log("Saving", courseList.length, "courses");
 
-    const insertMany = coursesDb.transaction((list) => {
+    const insertMany = db.transaction((list) => {
         for (const course of list) {
             insertCourse.run(course);
         }
@@ -217,7 +212,7 @@ function saveCourses(courseList) {
 }
 
 function getAllCourses() {
-    return coursesDb.prepare(`SELECT * FROM courses ORDER BY discipline, number`).all();
+    return db.prepare(`SELECT * FROM courses ORDER BY discipline, number`).all();
 }
 
 function updateReview(unique_id, review_status, status, notes) {
@@ -295,14 +290,13 @@ function clearDatabase() {
     db.exec("DELETE FROM students");
     
     // Clear courses catalog
-    coursesDb.exec("DELETE FROM courses");
+    db.exec("DELETE FROM courses");
     
     return { success: true };
 }
 
 function closeDatabase() {
     db.close();
-    coursesDb.close();
 }
 
 module.exports = {
