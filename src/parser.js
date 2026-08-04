@@ -1,7 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const { XMLParser } = require("fast-xml-parser");
-
+const { saveCourses } = require("./database");
+const { app } = require("electron");
 const {
     DEPT_MAPPING,
     REQUIREMENTS
@@ -9,7 +10,7 @@ const {
 
 const DEBUG = false;
 const harvestedCourses = {};
-const masterCourseCatalog = {}; // <-- NEW: Hold all unique courses
+const masterCourseCatalog = {}; 
 
 const parser = new XMLParser({
     ignoreAttributes: false,
@@ -37,10 +38,9 @@ function cleanString(str) {
 async function processDirectory(directory) {
     const students = {};
     const masterCourseCatalog = {};
-    const { app } = require("electron");
 
     const auditDir = path.join(app.getPath("userData"), "audits");
-console.log("AUDIT FILES ARE SAVED HERE:", auditDir); // <-- Add this!
+console.log("AUDIT FILES ARE SAVED HERE:", auditDir); 
     if (!fs.existsSync(auditDir)) {
         fs.mkdirSync(auditDir, { recursive: true });
     }
@@ -84,8 +84,8 @@ console.log("AUDIT FILES ARE SAVED HERE:", auditDir); // <-- Add this!
         }
     }
 
-    // --- NEW: Save the master catalog to courses.db ---
-    const { saveCourses } = require("./database"); // Ensure you require this at the top of your file
+    
+    
     saveCourses(Object.values(masterCourseCatalog));
     console.log("Harvested:", Object.keys(masterCourseCatalog).length, "unique courses");
 
@@ -144,8 +144,7 @@ function parseAuditXML(auditObj) {
     let isAffiliate = false;
     let upcomingFallCredits = 0;
 
-    const classList = []; // <-- NEW: Array to hold class objects
-
+    const classList = []; 
     clsInfo.forEach(c => {
         if (c["@_Term"] && c["@_Term"] < minTerm) {
             minTerm = c["@_Term"];
@@ -163,13 +162,13 @@ function parseAuditXML(auditObj) {
             upcomingFallCredits += Number(c["@_Credits"]);
         }
 
-        // --- NEW: Capture structured class data AND harvest attributes ---
+        
         const disc = c["@_Discipline"] || "";
         const num = c["@_Number"] || "";
         const title = c["@_Course_title"] || "";
         const credits = Number(c["@_Credits"] || 0);
 
-        // 1. Capture for the student's transcript
+        // Capture for the student's transcript
         if (c["@_Passed"] === "Y" || c["@_In_progress"] === "Y") {
             classList.push({
                 discipline: disc,
@@ -181,11 +180,11 @@ function parseAuditXML(auditObj) {
             });
         }
 
-        // 2. Capture for the MASTER COURSE CATALOG
+        // Capture for the MASTER COURSE CATALOG
         let attributes = [];
         if (c.Attribute) {
             const attrs = ensureArray(c.Attribute);
-            // Filter out internal system keys, keep only the actual curriculum attributes
+            // Filter out internal system keys, keep only actual curriculum attributes
             attributes = attrs
                 .filter(a => a["@_Code"] === "ATTRIBUTE")
                 .map(a => a["@_Value"]);
@@ -193,7 +192,6 @@ function parseAuditXML(auditObj) {
 
         if (disc && num) {
             const courseKey = `${disc}-${num}`;
-            // We attach this to the parser output so the orchestrator can collect them
             if (!auditObj.masterCourses) auditObj.masterCourses = {};
 
             harvestedCourses[courseKey] = {
@@ -233,7 +231,7 @@ function parseAuditXML(auditObj) {
     }
 
     // --- Detailed Core Counts & Note Tracking ---
-    let notesArr = []; // Define early to catch credit remainders!
+    let notesArr = []; 
 
     const requirementCounts = {};
 

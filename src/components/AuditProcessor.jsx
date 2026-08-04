@@ -266,7 +266,7 @@ export default function AuditProcessor() {
     const result = await window.electronAPI.readAuditFile(filename);
     
     if (result.success) {
-      // Send the JSON data and filename to the Main Process to open in a new window!
+      // JSON data and filename to Main Process to open in new window
       window.electronAPI.openJsonViewer(result.data, filename);
     } else {
       alert("Could not load audit file: " + result.error);
@@ -346,7 +346,7 @@ export default function AuditProcessor() {
                 {showTooltip && (
                   <div className="tooltip-content">
                     Left-click a row to open the student's record.<br />
-                    Right-click a cell to highlight or return to its original color.
+                    Right-click a cell to highlight or reset its color.
                     <div className="tooltip-arrow" />
                   </div>
                 )}
@@ -470,7 +470,7 @@ export default function AuditProcessor() {
                           ];
                           Object.assign(combinedStyle, stickyConfigs[colIdx]);
 
-                          // If it doesn't have an explicit color (like "Completed" or "OK"), give it the solid white default
+                          // If it doesn't have an explicit color give it the solid white default
                           if (!combinedStyle.backgroundColor) {
                             combinedClass += " default-sticky-bg";
                           }

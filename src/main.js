@@ -3,7 +3,6 @@ const path = require('path');
 const { processDirectory } = require('./parser');
 const { getStudentClasses } = require('./database'); // Adjust path if needed
 const fs = require('fs');
-
 const {
     saveStudents,
     getStudents,
@@ -11,6 +10,7 @@ const {
     updateStudent,
     clearDatabase
 } = require('./database');
+const { closeDatabase } = require("./database");
 
 
 function createWindow() {
@@ -34,7 +34,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-    // 1. Let the user select a folder
+    // Let the user select a folder
     ipcMain.handle('dialog:openDirectory', async () => {
         const { canceled, filePaths } = await dialog.showOpenDialog({
             properties: ['openDirectory']
@@ -44,7 +44,7 @@ app.whenReady().then(() => {
         return filePaths[0]; 
     });
 
-    // 2. Run the parser on the selected folder
+    // Run the parser on the selected folder
     ipcMain.handle('parser:run', async (event, folderPath) => {
     try {
         const students = await processDirectory(folderPath);
@@ -96,7 +96,7 @@ ipcMain.handle('read-audit-file', async (event, filename) => {
     }
 });
 
-// Add this below your existing ipcMain.handle for 'read-audit-file'
+
 ipcMain.on('open-json-viewer', (event, jsonData, filename) => {
     // Create a new window
     const viewerWin = new BrowserWindow({
@@ -110,7 +110,7 @@ ipcMain.on('open-json-viewer', (event, jsonData, filename) => {
         }
     });
 
-    // Create a simple, styled HTML page to display the JSON
+    // Create a simple HTML page to display the JSON
     const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -166,7 +166,6 @@ ipcMain.handle("database:getStudents", () => {
     });
 });
 
-const { closeDatabase } = require("./database");
 
 app.on("window-all-closed", () => {
 

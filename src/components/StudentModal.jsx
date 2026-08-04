@@ -12,6 +12,8 @@ export default function StudentModal({
   onClose, 
   onSave 
 }) {
+  
+  
   if (!student) return null;
 
   return createPortal(

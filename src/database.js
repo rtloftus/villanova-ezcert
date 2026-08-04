@@ -251,8 +251,9 @@ function updateStudent(student) {
             first_major = ?,
             free_electives = ?,
             total = ?,
-            missing_requirements = ?
-            audit_file = ?
+            missing_requirements = ?,
+            audit_file = ?,
+            updated_at = CURRENT_TIMESTAMP
         WHERE unique_id = ?
     `);
 
