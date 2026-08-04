@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from "react-dom";
 import { REQUIREMENTS } from "../reactconstants";
 import './AuditProcessor.css';
+import Tooltip from "./Tooltip";
 
 
 export default function StudentModal({ 
@@ -132,7 +133,11 @@ export default function StudentModal({
           </div>
   
           <div className="modal-section">
-            <h4>Missing Requirements</h4>
+            <h4>Missing Requirements
+              <Tooltip text="Missing requirements update after saving.">
+  <span className="tooltip-icon">ⓘ</span>
+</Tooltip>
+            </h4>
   
             {REQUIREMENTS.map(({ label, field }) => (
               <div key={field} className="missing-reqs-item">

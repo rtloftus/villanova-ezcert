@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import './AuditProcessor.css';
-import { createPortal } from "react-dom";
 import * as XLSX from 'xlsx-js-style';
 import {
   REQUIREMENTS,
@@ -8,6 +7,7 @@ import {
   REVIEW_STATUSES
 } from "../reactconstants";
 import StudentModal from './StudentModal';
+import Tooltip from "./Tooltip";
 
 
 export default function AuditProcessor() {
@@ -15,7 +15,6 @@ export default function AuditProcessor() {
   const [status, setStatus] = useState('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [studentData, setStudentData] = useState(null);
-  const [showTooltip, setShowTooltip] = useState(false);
 
   // Modal State
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -264,7 +263,7 @@ export default function AuditProcessor() {
 
   const handleViewAudit = async (filename) => {
     const result = await window.electronAPI.readAuditFile(filename);
-    
+
     if (result.success) {
       // JSON data and filename to Main Process to open in new window
       window.electronAPI.openJsonViewer(result.data, filename);
@@ -336,21 +335,13 @@ export default function AuditProcessor() {
             <h3 className="success-text">
               Showing {processedData.length} of {Object.keys(studentData).length} student records.
 
-              <div
-                className="tooltip-container"
-                onMouseEnter={() => setShowTooltip(true)}
-                onMouseLeave={() => setShowTooltip(false)}
+              <Tooltip
+                text={
+                  "Left click a row to view a student's record.\nRight click a cell to highlight it or reset its color."
+                }
               >
                 <span className="tooltip-icon">ⓘ</span>
-
-                {showTooltip && (
-                  <div className="tooltip-content">
-                    Left-click a row to open the student's record.<br />
-                    Right-click a cell to highlight or reset its color.
-                    <div className="tooltip-arrow" />
-                  </div>
-                )}
-              </div>
+              </Tooltip>
             </h3>
 
             <div className="filter-controls">

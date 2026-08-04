@@ -298,46 +298,6 @@ th {
   margin-top: 24px;
 }
 
-.tooltip-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin-left: 8px;
-}
-
-.tooltip-icon {
-  cursor: default;
-  font-size: 18px;
-  color: #666;
-}
-
-.tooltip-content {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 8px;
-  background-color: rgba(228, 228, 228);
-  color: #181818;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 14px;
-  white-space: nowrap;
-  z-index: 9999;
-  font-weight: normal;
-  box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
-}
-
-.tooltip-arrow {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 6px;
-  border-style: solid;
-  border-color: rgba(214, 214, 214, 0.95) transparent transparent transparent;
-}
-
 .context-menu {
   position: absolute;
   background-color: #ffffff;
