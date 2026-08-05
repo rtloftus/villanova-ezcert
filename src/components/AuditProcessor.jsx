@@ -364,6 +364,13 @@ export default function AuditProcessor() {
                 <option value="">All Majors</option>
                 {uniqueMajors.map(major => <option key={major} value={major}>{major}</option>)}
               </select>
+              <Tooltip
+                text={
+                  "Each requirement count is based on courses rather than credits."
+                }
+              >
+                <span className="tooltip-icon">ⓘ</span>
+              </Tooltip>
             </div>
           </div>
 
