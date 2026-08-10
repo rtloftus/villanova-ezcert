@@ -8,6 +8,7 @@ import {
 } from "../reactconstants";
 import StudentModal from './StudentModal';
 import Tooltip from "./Tooltip";
+import PasswordModal from './PasswordModal';
 
 
 export default function AuditProcessor() {
@@ -15,6 +16,9 @@ export default function AuditProcessor() {
   const [status, setStatus] = useState('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [studentData, setStudentData] = useState(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [showClearDatabase, setShowClearDatabase] = useState(false);
 
   // Modal State
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -203,13 +207,44 @@ export default function AuditProcessor() {
     setEditData({ ...student, ...emptyFields });
   };
 
-  const handleClearDatabase = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to clear the database?\n\nThis will permanently delete all review data, notes, statuses, and edits. This action cannot be undone."
-    );
-    if (!confirmed) return;
+  const handleClearDatabase = () => {
+    setPasswordError('')
+    setShowPasswordModal(true);
+  };
 
-    await window.electronAPI.clearDatabase();
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (
+        e.shiftKey && 
+        (e.ctrlKey | e.metaKey) && 
+        e.key.toLowerCase() === "x") {
+        setShowClearDatabase(true);
+      }
+    };
+    const handleKeyUp = () => {
+      if (!window.event?.shiftKey) {
+        setShowClearDatabase(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
+  const handlePasswordSubmit = async (password) => {
+    const result = await window.electronAPI.clearDatabase(password)
+    
+    if (!result.success) {
+      setPasswordError(result.error);
+      return;
+    }
+
+    setShowPasswordModal(false);
     setStudentData(null);
     setStatus("idle");
     setSelectedStudent(null);
@@ -512,12 +547,20 @@ export default function AuditProcessor() {
           onSave={handleSaveDetails}
         />
       )}
-
+      {showPasswordModal && (
+        <PasswordModal
+          onClose={() => setShowPasswordModal(false)}
+          onSubmit={handlePasswordSubmit}
+          error={passwordError}
+          />
+      )}
+      {showClearDatabase && (
       <div className="clear-database-container">
         <button className="button danger" onClick={handleClearDatabase}>
           Clear Database
         </button>
       </div>
+      )}
     </div>
   );
 }

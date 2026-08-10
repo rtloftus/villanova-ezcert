@@ -389,3 +389,40 @@ th {
 .clickable-row:hover .default-sticky-bg {
   background-color: #f0f4f8;
 }
+
+.password-modal {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  width: 360px;
+  box-shadow: 0 10px 30px rgba(0, 0,0, 0.25);
+}
+
+.pasword-modal h2 {
+  margin-top: 0;
+}
+
+.password-modal p {
+  margin-bottom: 16px;
+}
+
+.password-modal input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.password-error {
+  color: #c62828;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}

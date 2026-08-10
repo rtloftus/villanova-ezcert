@@ -11,6 +11,9 @@ const {
     clearDatabase
 } = require('./database');
 const { closeDatabase } = require("./database");
+const crypto = require('crypto');
+
+const CLEAR_DATABASE_PASSWORD = 'lgraham-26';
 
 
 function createWindow() {
@@ -71,8 +74,19 @@ ipcMain.handle("database:updateStudent", (_, student) => {
     return { success: true };
 });
 
-ipcMain.handle("clear-database", async () => {
-  return await clearDatabase();
+ipcMain.handle("clear-database", async (_, password) => {
+  if (password !== CLEAR_DATABASE_PASSWORD) {
+    return {
+        success: false,
+        error: "Incorrect password."
+    };
+  }
+  
+  await clearDatabase();
+
+  return {
+    success: true
+  };
 });
 
 // Add this alongside your other ipcMain handlers
