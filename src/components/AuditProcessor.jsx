@@ -299,20 +299,44 @@ export default function AuditProcessor() {
     const updated = { ...selectedStudent, ...editData };
 
     NUMERIC_FIELDS.forEach(field => {
-      if (updated[field] === "") updated[field] = selectedStudent[field];
-      else updated[field] = Number(updated[field]);
+      if (updated[field] === "") {
+        updated[field] = selectedStudent[field];
+      } else {
+        updated[field] = Number(updated[field]);
+      }
     });
+    updated.major1 = updated.major1 || "";
+    updated.major2 = updated.major2 || "";
+    updated.major3 = updated.major3 || "";
+    updated.major4 = updated.major4 || "";
+    updated.minor1 = updated.minor1 || "";
+    updated.minor2 = updated.minor2 || "";
+    updated.minor3 = updated.minor3 || "";
+    updated.minor4 = updated.minor4 || "";
+    updated.conc1 = updated.conc1 || "";
+    updated.conc2 = updated.conc2 || "";
+    updated.conc3 = updated.conc3 || "";
+    updated.conc4 = updated.conc4 || "";
 
     updated.total = NUMERIC_FIELDS.reduce((sum, field) => sum + updated[field], 0);
 
     const missing = [];
+
     REQUIREMENTS.forEach(({ label, field }) => {
-      if (updated[field] > 0) missing.push(`${updated[field]} ${label}`);
+      if (updated[field] > 0) {
+        missing.push(`${updated[field]} ${label}`);
+      }
     });
 
     updated.missing_requirements = missing.join(", ");
-    await window.electronAPI.updateStudent(updated);
 
+    const result = await window.electronAPI.updateStudent(updated);
+
+    if (!result?.success) {
+      alert(result?.error || "Could not save record.");
+      return;
+    }
+    
     setStudentData(prev =>
       prev.map(student =>
         student.unique_id === selectedStudent.unique_id ? updated : student
@@ -328,17 +352,30 @@ export default function AuditProcessor() {
     }));
   };
 
-  const { uniqueDepts, uniqueMajors, uniqueStatuses } = useMemo(() => {
-    if (!studentData) return { uniqueDepts: [], uniqueMajors: [], uniqueStatuses: [] };
-
+  const {
+    uniqueDepts,
+    uniqueMajors,
+    uniqueStatuses,
+    uniquePrograms
+  } = useMemo(() => {
+    if (!studentData) {
+      return {
+        uniqueDepts: [],
+        uniqueMajors: [],
+        uniqueStatuses: [],
+        uniquePrograms: []
+      };
+    }
     const students = Object.values(studentData);
+    
     return {
       uniqueDepts: [...new Set(students.map(s => s.dept))].filter(Boolean).sort(),
       uniqueMajors: [...new Set(students.map(s => s.major1))].filter(Boolean).sort(),
-      uniqueStatuses: [...new Set(students.map(s => s.status))].filter(Boolean).sort()
+      uniqueStatuses: [...new Set(students.map(s => s.status))].filter(Boolean).sort(),
+      uniquePrograms: [...new Set(students.map(s => s.program))].filter(Boolean).sort()
     };
   }, [studentData]);
-
+  
   const handleViewAudit = async (filename) => {
     const result = await window.electronAPI.readAuditFile(filename);
 
@@ -593,6 +630,7 @@ export default function AuditProcessor() {
           editData={editData}
           setEditData={setEditData}
           classes={selectedStudentClasses}
+          programOptions={uniquePrograms}
           onClose={() => setSelectedStudent(null)}
           onSave={handleSaveDetails}
           onDelete={handleDeleteStudent}

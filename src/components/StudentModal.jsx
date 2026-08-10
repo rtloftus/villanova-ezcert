@@ -1,16 +1,77 @@
-import React from 'react';
+import React, {useState} from 'react';
 import { createPortal } from "react-dom";
 import { REQUIREMENTS } from "../reactconstants";
 import './AuditProcessor.css';
 import Tooltip from "./Tooltip";
 
+function TagInput({label, values, onChange, maxItems}) {
+  const [input, setInput] = useState("");
+  const addValue = () => {
+    const value = input.trim().toUpperCase();
 
+    if (!value) return;
+    if (values.length >= maxItems) return;
+    if (values.includes(value)) {
+      setInput("");
+      return;
+    }
+
+    onChange([...values,value]);
+    setInput("");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addValue();
+    }
+
+    if (e.key === "Backspace" && !input && values.length > 0) {
+      removeValue(values.length - 1);
+    }
+  };
+
+  return (
+    <div className = "program-field">
+      <label>{label}</label>
+
+      <div className="tag-input">
+        {values.map((value, index) => (
+          <span className = "tag" key={`${value}-${index}`}>
+            {value}
+            <button
+              type="button"
+              onClick={() => removeValue(index)}
+              aria-label={`Remove ${value}`}
+            >
+              X
+            </button>
+          </span>
+        ))}
+
+        {values.length < maxItems && (
+          <input
+            type="text"
+            value={input}
+            placeholder={values.length === 0 ? `Enter ${label.toLowerCase()}...` : ""}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        )}
+      </div>
+      <small>
+        Press Enter to add, up to {maxItems}.
+      </small>
+    </div>
+  );
+}
 
 export default function StudentModal({ 
   student, 
   editData, 
   setEditData, 
   classes, 
+  programOptions,
   onClose, 
   onSave,
   onDelete
@@ -65,34 +126,87 @@ export default function StudentModal({
   
             <div className="modal-section">
               <h4>Degree Program(s)</h4>
-              <p><strong>Program Code:</strong> {student.program}</p>
-  
-              {student.major1 && (
-                <p>
-                  <strong>Majors:</strong>{" "}
-                  {[student.major1, student.major2, student.major3, student.major4]
-                    .filter(Boolean)
-                    .join(", ")}
-                </p>
-              )}
-  
-              {student.minor1 && (
-                <p>
-                  <strong>Minors:</strong>{" "}
-                  {[student.minor1, student.minor2, student.minor3, student.minor4]
-                    .filter(Boolean)
-                    .join(", ")}
-                </p>
-              )}
-  
-              {student.conc1 && (
-                <p>
-                  <strong>Concentrations:</strong>{" "}
-                  {[student.conc1, student.conc2, student.conc3, student.conc4]
-                    .filter(Boolean)
-                    .join(", ")}
-                </p>
-              )}
+
+              <div className='program-field'>
+                <label>Program Code</label>
+                <select
+                  value={editData.program || ""}
+                  onChange={(e) =>
+                    setEditData((prev) => ({
+                      ...prev,
+                      program: e.target.value
+                    }))
+                  }
+                >
+                  <option value="">Select Program</option>
+                  {programOptions.map((program) => (
+                    <option key={program} value={program}>
+                      {program}
+                    </option>
+                  ))}
+                  
+                </select>
+              </div>
+
+              <TagInput
+                label="Majors"
+                values={[
+                  editData.major1,
+                  editData.major2,
+                  editData.major3,
+                  editData.major4
+                ].filter(Boolean)}
+                maxItems={4}
+                onChange={(values) =>
+                  setEditData((prev) => ({
+                    ...prev,
+                    major1: values[0] || "",
+                    major2: values[1] || "",
+                    major3: values[2] || "",
+                    major4: values[3] || ""
+                  }))
+                }
+              />
+
+              <TagInput
+                label="Minors"
+                values={[
+                  editData.minor1,
+                  editData.minor2,
+                  editData.minor3,
+                  editData.minor4
+                ].filter(Boolean)}
+                maxItems={4}
+                onChange={(values) =>
+                  setEditData((prev) => ({
+                    ...prev,
+                    minor1: values[0] || "",
+                    minor2: values[1] || "",
+                    minor3: values[2] || "",
+                    minor4: values[3] || ""
+                  }))
+                }
+              />
+
+              <TagInput
+                label="Concentrations"
+                values={[
+                  editData.conc1,
+                  editData.conc2,
+                  editData.conc3,
+                  editData.conc4
+                ].filter(Boolean)}
+                maxItems={4}
+                onChange={(values) =>
+                  setEditData((prev) => ({
+                    ...prev,
+                    conc1: values[0] || "",
+                    conc2: values[1] || "",
+                    conc3: values[2] || "",
+                    conc4: values[3] || ""
+                  }))
+                }
+              />
             </div>
           </div>
   

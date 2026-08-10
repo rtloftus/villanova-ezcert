@@ -446,3 +446,80 @@ th {
 .add-student-button:hover {
   background: #43a047;
 }
+
+.program-field {
+  margin-bottom: 16px;
+}
+
+.program-field > label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.program-field > select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background: white;
+  font-size: 14px;
+}
+
+.tag-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 5px 8px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background: white;
+}
+
+.tag-input:focus-within {
+  border-color: #777;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #e8e8e8;
+  font-size: 13px;
+}
+
+.tag button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+}
+
+.tag button:hover {
+  color: #000;
+}
+
+.tag-input input {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  padding: 5px;
+  font-size: 14px;
+}
+
+.program-field small {
+  display: block;
+  margin-top: 4px;
+  color: #777;
+  font-size: 11px;
+}

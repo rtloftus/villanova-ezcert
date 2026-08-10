@@ -232,6 +232,19 @@ function updateStudent(student) {
     const stmt = db.prepare(`
         UPDATE students
         SET
+            program = ?,
+            major1 = ?,
+            major2 = ?,
+            major3 = ?,
+            major4 = ?,
+            minor1 = ?,
+            minor2 = ?,
+            minor3 = ?,
+            minor4 = ?,
+            conc1 = ?,
+            conc2 = ?,
+            conc3 = ?,
+            conc4 = ?,
             status = ?,
             review_status = ?,
             notes = ?,
@@ -258,6 +271,19 @@ function updateStudent(student) {
     `);
 
     stmt.run(
+        student.program,
+        student.major1,
+        student.major2,
+        student.major3,
+        student.major4,
+        student.minor1,
+        student.minor2,
+        student.minor3,
+        student.minor4,
+        student.conc1,
+        student.conc2,
+        student.conc3,
+        student.conc4,
         student.status,
         student.review_status,
         student.notes,
