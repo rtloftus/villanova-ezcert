@@ -283,6 +283,26 @@ function updateStudent(student) {
     );
 }
 
+function addStudent(student) {
+    const existing = db
+        .prepare ('SELECT unique_id FROM students WHERE unique_id = ?')
+        .get(student.unique_id);
+
+    if (existing) {
+        return {
+            success: false,
+            error: "A student with this ID already exists."
+        }
+    }
+    insertStudent.run(student);
+    return {success: true};
+}
+
+function deleteStudent(unique_id) {
+    db.prepare('DELETE FROM students WHERE unique_id = @unique_id').run({unique_id});
+    return {success: true};
+}
+
 function clearDatabase() {
     // clear relational data and main table
     db.exec("DELETE FROM student_classes"); 
@@ -323,5 +343,7 @@ module.exports = {
     updateReview,
     closeDatabase,
     updateStudent,
+    addStudent,
+    deleteStudent,
     clearDatabase
 };

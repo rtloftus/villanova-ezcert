@@ -9,6 +9,7 @@ import {
 import StudentModal from './StudentModal';
 import Tooltip from "./Tooltip";
 import PasswordModal from './PasswordModal';
+import AddStudentModal from './AddStudentModal';
 
 
 export default function AuditProcessor() {
@@ -19,6 +20,7 @@ export default function AuditProcessor() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [showClearDatabase, setShowClearDatabase] = useState(false);
+  const [showAddStudent, setShowAddStudent] = useState(false)
 
   // Modal State
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -46,6 +48,31 @@ export default function AuditProcessor() {
       return newSet;
     });
   };
+
+  const handleDeleteStudent = async (unique_id) => {
+  const confirmed = window.confirm(
+    `Are you sure you want to delete ${selectedStudent.first_name} ${selectedStudent.last_name}?\n\nThis will permanently delete this student's record and review data.`
+  );
+  if (!confirmed) return;
+
+  const result = await window.electronAPI.deleteStudent(unique_id);
+  if (!result.success) {
+    alert(result.error || "Could not delete student.");
+    return;
+  }
+
+  setStudentData(prev =>
+    Object.fromEntries(
+      Object.entries(prev).filter(
+        ([, student]) => student.unique_id !== unique_id
+      )
+    )
+  );
+
+  setSelectedStudent(null);
+};
+
+
 
   useEffect(() => {
     document.body.style.overflow = selectedStudent ? "hidden" : "";
@@ -94,6 +121,22 @@ export default function AuditProcessor() {
       setErrorMessage(result.error);
       setStatus('error');
     }
+  };
+
+  const handleAddStudent = async (student) => {
+    const result = await window.electronAPI.addStudent(student);
+
+    if (!result.success) {
+      return result;
+    }
+
+    const students = await window.electronAPI.getStudents();
+
+    setStudentData(students);
+    setStatus("success");
+    setShowAddStudent(false);
+
+    return { success: true };
   };
 
   const handleExportXLSX = () => {
@@ -215,8 +258,8 @@ export default function AuditProcessor() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (
-        e.shiftKey && 
-        (e.ctrlKey | e.metaKey) && 
+        e.shiftKey &&
+        (e.ctrlKey | e.metaKey) &&
         e.key.toLowerCase() === "x") {
         setShowClearDatabase(true);
       }
@@ -238,7 +281,7 @@ export default function AuditProcessor() {
 
   const handlePasswordSubmit = async (password) => {
     const result = await window.electronAPI.clearDatabase(password)
-    
+
     if (!result.success) {
       setPasswordError(result.error);
       return;
@@ -367,9 +410,16 @@ export default function AuditProcessor() {
         <div className="table-wrapper">
 
           <div className="table-header-controls">
-            <h3 className="success-text">
-              Showing {processedData.length} of {Object.keys(studentData).length} student records.
-
+            <div className='record-count-header'>
+              <h3 className="success-text">
+                Showing {processedData.length} of {Object.keys(studentData).length} student records.
+              </h3>
+              <button
+                className="button add-student-button"
+                onClick={() => setShowAddStudent(true)}
+              >
+                + Add Student
+              </button>
               <Tooltip
                 text={
                   "Left click a row to view a student's record.\nRight click a cell to highlight it or reset its color."
@@ -377,8 +427,8 @@ export default function AuditProcessor() {
               >
                 <span className="tooltip-icon">ⓘ</span>
               </Tooltip>
-            </h3>
 
+            </div>
             <div className="filter-controls">
               <select value={filterReviewStatus} onChange={(e) => setFilterReviewStatus(e.target.value)}>
                 <option value="">All Review Statuses</option>
@@ -545,21 +595,28 @@ export default function AuditProcessor() {
           classes={selectedStudentClasses}
           onClose={() => setSelectedStudent(null)}
           onSave={handleSaveDetails}
+          onDelete={handleDeleteStudent}
         />
+      )}
+      {showAddStudent && (
+        <AddStudentModal
+          onClose={() => setShowAddStudent(false)}
+          onAdd={handleAddStudent}
+          />
       )}
       {showPasswordModal && (
         <PasswordModal
           onClose={() => setShowPasswordModal(false)}
           onSubmit={handlePasswordSubmit}
           error={passwordError}
-          />
+        />
       )}
       {showClearDatabase && (
-      <div className="clear-database-container">
-        <button className="button danger" onClick={handleClearDatabase}>
-          Clear Database
-        </button>
-      </div>
+        <div className="clear-database-container">
+          <button className="button danger" onClick={handleClearDatabase}>
+            Clear Database
+          </button>
+        </div>
       )}
     </div>
   );

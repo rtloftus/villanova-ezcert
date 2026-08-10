@@ -5,13 +5,15 @@ import './AuditProcessor.css';
 import Tooltip from "./Tooltip";
 
 
+
 export default function StudentModal({ 
   student, 
   editData, 
   setEditData, 
   classes, 
   onClose, 
-  onSave 
+  onSave,
+  onDelete
 }) {
   
   
@@ -219,6 +221,13 @@ export default function StudentModal({
           </div>
   
           <div className="modal-footer">
+            <button
+              className="button danger"
+              onClick={() => onDelete(student.unique_id)}
+            >
+              Delete Student
+            </button>
+
             <button
               className="button"
               onClick={onClose}

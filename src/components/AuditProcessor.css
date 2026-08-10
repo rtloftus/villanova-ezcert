@@ -426,3 +426,23 @@ th {
   gap: 10px;
   margin-top: 16px;
 }
+
+.record-count-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.record-count-header h3 {
+  margin: 0;
+}
+
+.record-count-header .add-student-button {
+  background: #4caf50;
+  color: white;
+  border: none;
+}
+
+.add-student-button:hover {
+  background: #43a047;
+}

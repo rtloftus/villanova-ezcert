@@ -8,12 +8,14 @@ const {
     getStudents,
     updateReview,
     updateStudent,
+    addStudent,
+    deleteStudent,
     clearDatabase
 } = require('./database');
 const { closeDatabase } = require("./database");
 const crypto = require('crypto');
 
-const CLEAR_DATABASE_PASSWORD = 'lgraham-26';
+const CLEAR_DATABASE_PASSWORD = 'rloftu01';
 
 
 function createWindow() {
@@ -67,6 +69,14 @@ app.whenReady().then(() => {
             error: error.message
         };
     }
+});
+
+ipcMain.handle("database:addStudent", (_, student) => {
+    return addStudent(student);
+});
+
+ipcMain.handle("database:deleteStudent", (_, unique_id) => {
+    return deleteStudent(unique_id);
 });
 
 ipcMain.handle("database:updateStudent", (_, student) => {
