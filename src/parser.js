@@ -258,18 +258,7 @@ function parseAuditXML(auditObj) {
     // Major Count + Credit Remainder Logic
     let majorCount = 0;
     if (majorBlock && isBlockIncomplete(majorBlock)) {
-        const qualifiers = majorBlock.Header ? ensureArray(majorBlock.Header.Qualifier) : [];
-        const neededQual = qualifiers.find(q => q["@_Needed"] && q["@_Name"] === "CLASSESCREDITS");
-        if (neededQual) {
-            const creditsNeeded = parseInt(neededQual["@_Needed"], 10);
-            majorCount = Math.floor(creditsNeeded / 3);
-            const remainder = creditsNeeded % 3;
-
-            if (remainder === 2) majorCount += 1;
-            if (remainder > 0) notesArr.push(`Major: +${remainder} cr.`);
-        } else {
-            majorCount = countMissingRules(majorBlock.Rule);
-        }
+        majorCount = countMissingRules(majorBlock.Rule);
     }
     requirementCounts.first_major = majorCount;
 
@@ -402,19 +391,48 @@ function isBlockIncomplete(block) {
     const percent = String(block["@_Per_complete"] || "");
     return !percent.startsWith("100") && !percent.startsWith("98");
 }
+function calculateMissingGroup(rule) {
+    const groupRequirement = rule.Requirement;
+    const rules = ensureArray(rule.Rule);
 
+    const groupsNeeded = parseInt(
+        rule.Advice?.["@_NumGroupsNeeded"] ?? groupRequirement?.["@NumGroups"],
+        10
+    );
+    if (!groupsNeeded || !rules.length) return 0;
+
+    const missingByRule = rules.map(childRule=>
+        calculateMissingClassesForRule(childRule)
+    );
+    missingByRule.sort((a, b) => a-b);
+
+    return missingByRule
+        .slice(0, groupsNeeded)
+        .reduce((sum, missing) => sum + missing, 0);
+
+}
 function countMissingRules(rules, targetLabels = null) {
     let missing = 0;
     const ruleArray = ensureArray(rules);
     for (const rule of ruleArray) {
-        if (rule.Rule) {
+        const label = rule["@_Label"] || "";
+        if (
+            targetLabels &&
+            !targetLabels.some(t =>
+                label.toLowerCase().includes(t.toLowerCase())
+            )
+        ) {
+            continue;
+        }
+
+        if (rule["@_RuleType"] === "Group") {
+            missing += calculateMissingGroup(rule);
+        } else if (rule.Rule) {
             missing += countMissingRules(rule.Rule, targetLabels);
         } else {
-            const label = rule["@_Label"] || "";
-            if (!targetLabels || targetLabels.some(t => label.toLowerCase().includes(t.toLowerCase()))) {
-                missing += calculateMissingClassesForRule(rule);
-            }
+            missing += calculateMissingClassesForRule(rule);
         }
+
     }
     return missing;
 }
@@ -449,24 +467,52 @@ function calculateMissingClassesForRule(rule) {
         if (rule.Requirement["@_Classes_begin"]) {
             requiredClasses = parseInt(rule.Requirement["@_Classes_begin"], 10);
 
-            if (rule.Classes_applied !== undefined) appliedClasses = parseInt(rule.Classes_applied, 10);
-            else if (rule["@_Classes_applied"] !== undefined) appliedClasses = parseInt(rule["@_Classes_applied"], 10);
+            if (rule.Classes_applied !== undefined) {
+                appliedClasses = parseInt(rule.Classes_applied, 10);
+            } else if (rule["@_Classes_applied"] !== undefined) {
+                appliedClasses = parseInt(rule["@_Classes_applied"], 10);
+            }
 
             const missing = requiredClasses - appliedClasses;
             return missing > 0 ? missing : 0;
         }
-        // Handle Credit-based requirements
-        else if (rule.Requirement["@_Credits_begin"]) {
+        
+        if (rule.Requirement["@_Credits_begin"]) {
             const requiredCredits = parseInt(rule.Requirement["@_Credits_begin"], 10);
             let appliedCredits = 0;
 
-            if (rule.Credits_applied !== undefined) appliedCredits = parseInt(rule.Credits_applied, 10);
-            else if (rule["@_Credits_applied"] !== undefined) appliedCredits = parseInt(rule["@_Credits_applied"], 10);
+            if (rule.Credits_applied !== undefined) {
+                appliedCredits = parseInt(rule.Credits_applied, 10);
+            } else if (rule["@_Credits_applied"] !== undefined) {
+                appliedCredits = parseInt(rule["@_Credits_applied"], 10);
+            }
 
             const missingCredits = requiredCredits - appliedCredits;
             if (missingCredits <= 0) return 0;
 
-            // New Rounding Rule: Floor the division, but round up if remainder is 2
+            const adviceCourses = ensureArray(rule.Advice)
+                .map(advice => ({
+                    credits: parseInt(advice["@_Credits"], 10)
+                }))
+                .filter(course => !isNaN(course.credits) && course.credits > 0);
+            
+                if (adviceCourses.length > 0) {
+                    const credits = adviceCourses
+                        .map(course => course.credits)
+                        .sort((a,b) => b - a);
+                    let remaining = missingCredits;
+                    let courseCount = 0;
+
+                    for (const creditValue of credits) {
+                        if (remaining <= 0) break;
+
+                        remaining -= creditValue;
+                        courseCount++;
+                    }
+                    if (remaining <=0) {
+                        return courseCount;
+                    }
+                }
             const classes = Math.floor(missingCredits / 3);
             const remainder = missingCredits % 3;
 
@@ -475,7 +521,10 @@ function calculateMissingClassesForRule(rule) {
     }
 
     // Fallback if no specific tag is found
-    appliedClasses = rule["@_Classes_applied"] !== undefined ? parseInt(rule["@_Classes_applied"], 10) : 0;
+    appliedClasses = rule["@_Classes_applied"] !== undefined 
+        ? parseInt(rule["@_Classes_applied"], 10) 
+        : 0;
+
     const missing = 1 - appliedClasses;
     return missing > 0 ? missing : 0;
 }

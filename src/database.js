@@ -126,8 +126,6 @@ DO UPDATE SET
     free_electives=excluded.free_electives,
     total=excluded.total,
     status=excluded.status,
-    review_status=excluded.review_status,
-    notes=excluded.notes,
     missing_requirements=excluded.missing_requirements,
     audit_file=excluded.audit_file,
     updated_at=CURRENT_TIMESTAMP;

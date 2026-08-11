@@ -20,6 +20,10 @@ function TagInput({label, values, onChange, maxItems}) {
     setInput("");
   };
 
+  const removeValue = (index) => {
+    onChange(values.filter((_, i) => i !== index));
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();

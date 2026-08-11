@@ -368,8 +368,17 @@ th {
   justify-content: space-between;
   margin-bottom: 8px;
   align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ddd;
 }
 
+.missing-reqs-item label {
+  width: 250px;
+}
+
+.missing-reqs-item input {
+  width: 150px;
+}
 .sticky-col-header {
   position: sticky;
   top: 0;
