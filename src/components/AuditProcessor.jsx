@@ -10,6 +10,7 @@ import StudentModal from './StudentModal';
 import Tooltip from "./Tooltip";
 import PasswordModal from './PasswordModal';
 import AddStudentModal from './AddStudentModal';
+import TutorialModal from "./TutorialModal";
 
 
 export default function AuditProcessor() {
@@ -21,6 +22,8 @@ export default function AuditProcessor() {
   const [passwordError, setPasswordError] = useState('');
   const [showClearDatabase, setShowClearDatabase] = useState(false);
   const [showAddStudent, setShowAddStudent] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
 
   // Modal State
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -75,7 +78,7 @@ export default function AuditProcessor() {
 
 
   useEffect(() => {
-    document.body.style.overflow = selectedStudent ? "hidden" : "";
+    document.body.style.overflow = selectedStudent || showTutorial ? "hidden" : "";
 
     return () => {
       document.body.style.overflow = "";
@@ -91,6 +94,14 @@ export default function AuditProcessor() {
       }
     }
     loadStudents();
+  }, []);
+
+  useEffect(() => {
+    const tutorialCompleted = localStorage.getItem("tutorialCompleted");
+
+    if(!tutorialCompleted) {
+      setShowTutorial(true);
+    }
   }, []);
 
   const handleSelectFolder = async () => {
@@ -336,7 +347,7 @@ export default function AuditProcessor() {
       alert(result?.error || "Could not save record.");
       return;
     }
-    
+
     setStudentData(prev =>
       prev.map(student =>
         student.unique_id === selectedStudent.unique_id ? updated : student
@@ -406,11 +417,75 @@ export default function AuditProcessor() {
     return data;
   }, [studentData, filterDept, filterMajor, filterStatus, filterReviewStatus, sortConfig]);
 
+  const tutorialSteps = [
+    {
+      title: "Welcome to Villanova EzCert",
+      text: "This application processes student audit XML files and gives you a quick overview of each student's graduation requirements."
+    },
+    {
+      title: "Select Your Audit Folder",
+      text: "Click 'Select Folder' and choose the folder containing the XML audit files you want to process."
+      },
+  {
+    title: "Run the Processor",
+    text: "Once you have selected a folder, click Run Processor. The application will process the XML files and update the student records."
+  },
+  {
+    title: "Student Records",
+    text: "Click any student row to open their detailed record. You can review requirements, courses, notes, and other information there."
+  },
+  {
+    title: "Editing Students",
+    text: "You can manually adjust student information and requirement counts from the student modal. Changes are saved to the database."
+  },
+  {
+    title: "Review Status",
+    text: "Use Review Status to keep track of students that need additional attention or have already been reviewed."
+  },
+  {
+    title: "Exporting",
+    text: "Export the current student data to an Excel file. You can also split the report into separate department tabs."
+  },
+  {
+    title: "Clear Database",
+    text: "To clear the database, scroll to the bottom of the page, and press Ctrl/Cmd + Shift + X. Hold Shift while pressing the 'Clear Database' button, and enter the password to clear the database."
+  },
+  {
+    title: "You're Ready!",
+    text: "That's the basics. You can reopen this tutorial later from the Help button if you need a refresher."
+  }
+];
+
+const openTutorial = () => {
+  setTutorialStep(0);
+  setShowTutorial(true);
+}
+const finishTutorial = () => {
+  localStorage.setItem("tutorialCompleted", "true");
+  setShowTutorial(false);
+  setTutorialStep(0);
+}
+
+const nextTutorialStep = () => {
+  if (tutorialStep >= tutorialSteps.length - 1) {
+    finishTutorial();
+  } else {
+    setTutorialStep(prev => prev + 1);
+  }
+};
+
+const previousTutorialStep = () => {
+  setTutorialStep(prev => Math.max(prev - 1, 0));
+};
+
   return (
     <div className="audit-container">
       <h2>Villanova EzCert</h2>
 
       <div className="button-row">
+                 <button className="button" onClick={openTutorial}>
+          Help
+        </button>
         <button className="button" onClick={handleSelectFolder}>Select Folder</button>
         <button
           className={`button primary ${!folderPath ? 'disabled' : ''}`}
@@ -419,6 +494,7 @@ export default function AuditProcessor() {
         >
           {status === 'processing' ? 'Processing XML...' : 'Run Processor'}
         </button>
+       
 
         {status === 'success' && studentData && (
           <div className="export-controls">
@@ -431,7 +507,9 @@ export default function AuditProcessor() {
               />
               Split into Department Tabs
             </label>
+            
           </div>
+      
         )}
       </div>
 
@@ -656,6 +734,15 @@ export default function AuditProcessor() {
           </button>
         </div>
       )}
+      {showTutorial && (
+  <TutorialModal
+    steps={tutorialSteps}
+    step={tutorialStep}
+    onClose={finishTutorial}
+    onNext={nextTutorialStep}
+    onBack={previousTutorialStep}
+  />
+)}
     </div>
   );
 }

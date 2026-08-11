@@ -532,3 +532,31 @@ th {
   color: #777;
   font-size: 11px;
 }
+
+.tutorial-content {
+width: min(600px, 92vw);
+}
+
+.tutorial-progress {
+font-size: 13px;
+color: #777;
+margin-bottom: 12px;
+}
+
+.tutorial-text {
+line-height: 1.6;
+min-height: 80px;
+margin-bottom: 0;
+}
+
+.tutorial-actions {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-top: 25px;
+}
+
+.tutorial-actions > div {
+display: flex;
+gap: 8px;
+}
