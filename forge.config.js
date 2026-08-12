@@ -1,7 +1,7 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 const { AutoUnpackNativesPlugin } = require('@electron-forge/plugin-auto-unpack-natives');
-
+const path = require('path');
 
 module.exports = {
   packagerConfig: {
@@ -11,7 +11,8 @@ module.exports = {
     ],
     extraResource: [
       'node_modules'
-    ]
+    ],
+    icon: path.join(__dirname, 'src', 'icon')
   },
   rebuildConfig: {
     force: true,
