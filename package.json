@@ -1,6 +1,6 @@
 {
   "name": "grad-cert-app",
-  "productName": "grad-cert-app",
+  "productName": "Villanova EzCert",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
