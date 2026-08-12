@@ -560,3 +560,80 @@ margin-top: 25px;
 display: flex;
 gap: 8px;
 }
+
+.add-student-modal {
+  width: min(650px, 92vw);
+  max-height: 85vh;
+  box-sizing: border-box;
+}
+
+.add-student-modal .modal-header h2 {
+  margin: 0;
+}
+
+.add-student-modal .modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  font-weight: bold;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.add-student-modal .modal-close:hover {
+  color: #000;
+}
+
+.add-student-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 20px;
+}
+
+.add-student-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.add-student-grid input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background: white;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.add-student-grid input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.add-student-modal .error-box {
+  margin-top: 18px;
+  margin-bottom: 0;
+}
+
+.add-student-modal .modal-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+@media (max-width: 600px) {
+  .add-student-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .add-student-modal {
+    width: min(500px, 92vw);
+  }
+}

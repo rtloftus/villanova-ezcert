@@ -167,7 +167,6 @@ export default function AddStudentModal ( {onClose, onAdd}) {
                         <input
                             value= {formData.exp_grad_date}
                             onChange={e => updateField("exp_grad_date", e.target.value)}
-                            autoFocus
                         />
                     </label>
                 </div>
