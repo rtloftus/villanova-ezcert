@@ -54,7 +54,7 @@ export default function AuditProcessor() {
 
   const handleDeleteStudent = async (unique_id) => {
   const confirmed = window.confirm(
-    `Are you sure you want to delete ${selectedStudent.first_name} ${selectedStudent.last_name}?\n\nThis will permanently delete this student's record and review data.`
+    `Are you sure you want to delete ${selectedStudent.first_name} ${selectedStudent.last_name}'s record?\n\nThis will permanently delete this student's record and review data.`
   );
   if (!confirmed) return;
 

@@ -109,7 +109,21 @@ export default function StudentModal({
             <div className="modal-section">
               <h4>Student Information</h4>
               <p><strong>Class:</strong> {student.clas}</p>
-              <p><strong>Exp Grad Date:</strong> {student.exp_grad_date}</p>
+              <p>
+  <strong>Exp. Grad Date:</strong>
+  <input
+    type="text"
+    style={{ marginLeft: "8px", width: "110px" }}
+    value={editData.exp_grad_date ?? ""}
+    placeholder={student.exp_grad_date}
+    onChange={(e) =>
+      setEditData((prev) => ({
+        ...prev,
+        exp_grad_date: e.target.value
+      }))
+    }
+  />
+</p>
               <p>
                 <strong>Credits Completed:</strong>
                 <input
