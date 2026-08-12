@@ -12,39 +12,40 @@
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\"",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
     "build": "electron-builder",
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win"
   },
-"build": {
-  "appId": "com.villanova.ezcert",
-  "productName": "Villanova EzCert",
-  "npmRebuild": false,
-
-  "win": {
-    "target": [
-      {
-        "target": "nsis",
-        "arch": ["x64"]
-      },
-      {
-        "target": "portable",
-        "arch": ["x64"]
-      }
-    ],
-    "icon": "src/icon.ico"
+  "build": {
+    "appId": "com.villanova.ezcert",
+    "productName": "Villanova EzCert",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "src/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "src/icon.icns"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false
+    }
   },
-
-  "mac": {
-    "target": "dmg",
-    "icon": "src/icon.icns"
-  },
-
-  "nsis": {
-    "oneClick": true,
-    "allowToChangeInstallationDirectory": false
-  }
-},
   "keywords": [],
   "author": {
     "name": "rtloftus",

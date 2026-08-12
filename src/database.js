@@ -1,7 +1,12 @@
-const Database = require("better-sqlite3");
 const path = require("path");
 const { app } = require("electron");
 const fs = require("fs");
+
+const sqliteRoot = app.isPackaged
+  ? path.join(process.resourcesPath, "node_modules", "better-sqlite3")
+  : path.join(__dirname, "..", "node_modules", "better-sqlite3");
+
+const Database = require(sqliteRoot);
 
 const dbPath = path.join(app.getPath("userData"), "students.db");
 console.log("Database location:", dbPath);
