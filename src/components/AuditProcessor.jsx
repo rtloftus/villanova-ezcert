@@ -166,7 +166,7 @@ export default function AuditProcessor() {
       "Core Fine Arts": s.core_fine_arts, "Core Theology": s.core_theology,
       "Core Language": s.core_language, "Core Diversity": s.core_diversity,
       "1st Major": s.first_major, "Free Electives": s.free_electives, "Total": s.total,
-      "NOTES": s.notes, "Missing Requirements": s.missing_requirements, "Audit File": s.audit_file
+      "Notes": s.notes, "Missing Requirements": s.missing_requirements, "Audit File": s.audit_file
     }));
 
     const workbook = XLSX.utils.book_new();
@@ -598,7 +598,7 @@ const previousTutorialStep = () => {
                   <th>Core Theology</th><th>Core Language</th><th>Core Diversity</th>
                   <th>1st Major</th><th>Free Electives</th>
                   <th onClick={() => requestSort('total')} className="sortable-header">Total {sortConfig.key === 'total' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                  <th>NOTES</th><th>Missing Requirements</th><th>Audit File</th>
+                  <th>Notes</th><th>Missing Requirements</th><th>Audit File</th>
                 </tr>
               </thead>
               <tbody>
