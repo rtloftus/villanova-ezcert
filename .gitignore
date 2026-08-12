@@ -90,3 +90,10 @@ typings/
 
 # Electron-Forge
 out/
+
+# Dist
+dist/
+
+#db
+*.db
+*.sqlite
