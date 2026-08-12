@@ -343,7 +343,7 @@ export default function StudentModal({
               className="button danger"
               onClick={() => onDelete(student.unique_id)}
             >
-              Delete Student
+              Delete Record
             </button>
 
             <button
