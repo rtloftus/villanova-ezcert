@@ -14,14 +14,14 @@ export default function PasswordModal({ onClose, onSubmit, error }) {
         <div className="modal-overlay">
             <div className="password-modal">
                 <h2>Clear Database</h2>
-                <p>Enter password to continue.</p>
+                <p>Type 'confirm' to continue.</p>
 
                 <form onSubmit={handleSubmit}>
                     <input
-                        type="password"
+                        type="text"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder='Password'
+                        placeholder='confirm'
                         autoFocus
                     />
                     {error && <div className="password-error">{error}</div>}

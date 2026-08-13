@@ -304,7 +304,7 @@ Edit:
 Look for:
 
 ```js
-const CLEAR_DATABASE_PASSWORD = 'rloftus';
+const CLEAR_DATABASE_PASSWORD = 'confirm';
 ```
 
 This is a hardcoded admin value, so update it carefully and communicate the new password to anyone who needs it.

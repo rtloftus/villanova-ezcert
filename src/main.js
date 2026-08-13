@@ -15,7 +15,7 @@ const {
 const { closeDatabase } = require("./database");
 const crypto = require('crypto');
 
-const CLEAR_DATABASE_PASSWORD = 'rloftus';
+const CLEAR_DATABASE_PASSWORD = 'confirm';
 
 
 function createWindow() {
