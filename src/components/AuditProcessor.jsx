@@ -158,8 +158,10 @@ export default function AuditProcessor() {
       "Class Code": s.clas, "Catalog Term": s.catalog_term, "Exp Grad Date": s.exp_grad_date,
       "Program": s.program, "Dept": s.dept, "Major1": s.major1, "Major2": s.major2,
       "Major3": s.major3, "Major4": s.major4, "Minor1": s.minor1, "Minor2": s.minor2,
-      "Minor3": s.minor3, "Minor4": s.minor4, "Conc1": s.conc1, "Conc2": s.conc2,
-      "Conc3": s.conc3, "Conc4": s.conc4, "Overall Hours Earned": s.overall_hours,
+      "Minor3": s.minor3, "Minor4": s.minor4, "Minor5": s.minor5, "Minor6": s.minor6,
+      "Minor7": s.minor7, "Minor8": s.minor8, "Conc1": s.conc1, "Conc2": s.conc2,
+      "Conc3": s.conc3, "Conc4": s.conc4, "Conc5": s.conc5, "Conc6": s.conc6,
+      "Conc7": s.conc7, "Conc8": s.conc8, "Overall Hours Earned": s.overall_hours,
       "Core Humanities": s.core_humanities, "Core Philosophy": s.core_philosophy,
       "Core Ethics": s.core_ethics, "Core Math": s.core_math, "Core Natural Science": s.core_nat_sci,
       "Core Lit": s.core_lit, "Core History": s.core_history, "Core Soc Sci": s.core_soc_sci,
@@ -324,10 +326,18 @@ export default function AuditProcessor() {
     updated.minor2 = updated.minor2 || "";
     updated.minor3 = updated.minor3 || "";
     updated.minor4 = updated.minor4 || "";
+    updated.minor5 = updated.minor5 || "";
+    updated.minor6 = updated.minor6 || "";
+    updated.minor7 = updated.minor7 || "";
+    updated.minor8 = updated.minor8 || "";
     updated.conc1 = updated.conc1 || "";
     updated.conc2 = updated.conc2 || "";
     updated.conc3 = updated.conc3 || "";
     updated.conc4 = updated.conc4 || "";
+    updated.conc5 = updated.conc5 || "";
+    updated.conc6 = updated.conc6 || "";
+    updated.conc7 = updated.conc7 || "";
+    updated.conc8 = updated.conc8 || "";
 
     updated.total = NUMERIC_FIELDS.reduce((sum, field) => sum + updated[field], 0);
 
@@ -590,7 +600,9 @@ const previousTutorialStep = () => {
                   <th onClick={() => requestSort('major1')} className="sortable-header">Major1 {sortConfig.key === 'major1' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
                   <th>Major2</th><th>Major3</th><th>Major4</th>
                   <th>Minor1</th><th>Minor2</th><th>Minor3</th><th>Minor4</th>
+                  <th>Minor5</th><th>Minor6</th><th>Minor7</th><th>Minor8</th>
                   <th>Conc1</th><th>Conc2</th><th>Conc3</th><th>Conc4</th>
+                  <th>Conc5</th><th>Conc6</th><th>Conc7</th><th>Conc8</th>
                   <th>Overall Hours Earned</th>
                   <th>Core Humanities</th><th>Core Philosophy</th><th>Core Ethics</th>
                   <th>Core Math</th><th>Core Natural Science</th><th>Core Literature</th>
@@ -612,7 +624,9 @@ const previousTutorialStep = () => {
                     { val: s.clas }, { val: s.catalog_term }, { val: s.exp_grad_date }, { val: s.program }, { val: s.dept },
                     { val: s.major1 }, { val: s.major2 }, { val: s.major3 }, { val: s.major4 },
                     { val: s.minor1 }, { val: s.minor2 }, { val: s.minor3 }, { val: s.minor4 },
+                    { val: s.minor5 }, { val: s.minor6 }, { val: s.minor7 }, { val: s.minor8 },
                     { val: s.conc1 }, { val: s.conc2 }, { val: s.conc3 }, { val: s.conc4 },
+                    { val: s.conc5 }, { val: s.conc6 }, { val: s.conc7 }, { val: s.conc8 },
                     { val: s.overall_hours },
                     { val: s.core_humanities }, { val: s.core_philosophy }, { val: s.core_ethics },
                     { val: s.core_math }, { val: s.core_nat_sci }, { val: s.core_lit },

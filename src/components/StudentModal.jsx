@@ -192,16 +192,24 @@ export default function StudentModal({
                   editData.minor1,
                   editData.minor2,
                   editData.minor3,
-                  editData.minor4
+                  editData.minor4,
+                  editData.minor5,
+                  editData.minor6,
+                  editData.minor7,
+                  editData.minor8
                 ].filter(Boolean)}
-                maxItems={4}
+                maxItems={8}
                 onChange={(values) =>
                   setEditData((prev) => ({
                     ...prev,
                     minor1: values[0] || "",
                     minor2: values[1] || "",
                     minor3: values[2] || "",
-                    minor4: values[3] || ""
+                    minor4: values[3] || "",
+                    minor5: values[4] || "",
+                    minor6: values[5] || "",
+                    minor7: values[6] || "",
+                    minor8: values[7] || ""
                   }))
                 }
               />
@@ -212,16 +220,24 @@ export default function StudentModal({
                   editData.conc1,
                   editData.conc2,
                   editData.conc3,
-                  editData.conc4
+                  editData.conc4,
+                  editData.conc5,
+                  editData.conc6,
+                  editData.conc7,
+                  editData.conc8
                 ].filter(Boolean)}
-                maxItems={4}
+                maxItems={8}
                 onChange={(values) =>
                   setEditData((prev) => ({
                     ...prev,
                     conc1: values[0] || "",
                     conc2: values[1] || "",
                     conc3: values[2] || "",
-                    conc4: values[3] || ""
+                    conc4: values[3] || "",
+                    conc5: values[4] || "",
+                    conc6: values[5] || "",
+                    conc7: values[6] || "",
+                    conc8: values[7] || ""
                   }))
                 }
               />

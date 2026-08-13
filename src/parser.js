@@ -365,11 +365,19 @@ function parseAuditXML(auditObj) {
         minor2: minors[1] || "",
         minor3: minors[2] || "",
         minor4: minors[3] || "",
+        minor5: minors[4] || "",
+        minor6: minors[5] || "",
+        minor7: minors[6] || "",
+        minor8: minors[7] || "",
 
         conc1: concs[0] || "",
         conc2: concs[1] || "",
         conc3: concs[2] || "",
         conc4: concs[3] || "",
+        conc5: concs[4] || "",
+        conc6: concs[5] || "",
+        conc7: concs[6] || "",
+        conc8: concs[7] || "",
 
         overall_hours: overallHours,
 
