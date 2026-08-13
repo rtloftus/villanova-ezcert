@@ -20,7 +20,10 @@ module.exports = {
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        createDesktopShortcut: true,
+        createStartMenuShortcut: true,
+      },
     },
     {
       name: '@electron-forge/maker-zip',
