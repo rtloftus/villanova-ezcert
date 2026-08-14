@@ -2,6 +2,11 @@
 
 Villanova EzCert is an Electron desktop application for processing student audit XML files, tracking graduation requirements, and reviewing student status. It reads XML audit exports, parses degree requirement information, stores the results in a local SQLite database, and presents the data in a React-based UI for review and export.
 
+## UPDATE 1.1
+
+- The app now allows for eight entries in minor and concentration, as opposed to the previous limit of 4.
+- The app now allows for filtering by minor and concentration. The app will also now take non-primary majors into account when filtering.
+
 ## Overview
 
 This app is designed for academic advising and certification workflows. The basic flow is:
