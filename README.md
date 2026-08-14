@@ -6,6 +6,7 @@ Villanova EzCert is an Electron desktop application for processing student audit
 
 - The app now allows for eight entries in minor and concentration, as opposed to the previous limit of 4.
 - The app now allows for filtering by minor and concentration. The app will also now take non-primary majors into account when filtering.
+- Passsword is now a 'confirm' prompt
 
 ## Overview
 
